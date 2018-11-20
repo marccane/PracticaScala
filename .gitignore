@@ -1,4 +1,5 @@
-bin\
+bin/
+.settings/
 .cache-main
 .classpath
 .project
