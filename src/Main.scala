@@ -12,16 +12,9 @@ object Main extends App {
 		str.toLowerCase.trim
   }
   
-  def freq (s : String) : List[(String,Int)] = {
-    val wordMap: collection.mutable.Map[String, Int] = collection.mutable.Map() withDefaultValue(0);
-    
-    for ( i <- s.split(" +") ) wordMap(i) += 1 //counting words
-    
-    ((for (k <- wordMap.keys) yield (k,wordMap(k))) toList) sortWith(_._2 > _._2)
-    //convert the map to a (descending ordered by tuples' second element) list
-  }
+  def freq (s : String) : List[(String,Int)] = ngramsfreq(s, 1)
   
-  def nonstopfreq (s: String, stopwords: List[String]) = 
+  def nonstopfreq (s: String, stopwords: List[String]): List[(String,Int)] = 
     freq(s).filterNot(x => stopwords.contains(x._1))
     
   def paraulafreqfreq(s: String, nMost: Int, nLeast: Int) = {
@@ -36,13 +29,27 @@ object Main extends App {
     for(elem <- freqList.slice(freqList.length-nLeast, freqList.length)) println(elem._2 + " paraules apareixen " + elem._1 + " vegades")
   }
     
+  def ngramsfreq(s: String, n: Int): List[(String,Int)] = {
+    val wordMap: collection.mutable.Map[String, Int] = collection.mutable.Map() withDefaultValue(0);
+    
+    for ( i <- s.split(" +").sliding(n,1) ) wordMap(i.mkString(" ")) += 1 //counting words
+    
+    wordMap.toList.sortWith(_._2 > _._2)
+  }
+  
   def topN(freqencyList: List[(String, Int)], n: Int) = {
     val nWords = freqencyList.foldLeft(0) { (total, actual) => total + actual._2 } 
     val nDiffWords = freqencyList length;
     println("N Words: " + nWords + " Diferent: " + nDiffWords)
     println("Words		" + " ocurrences " + " frequency")
     for(r <- freqencyList.slice(0,n)) println(r._1 + "			" + r._2 + "	" + (r._2.toFloat/nWords)*100)
-  } 
+  }
+  
+  def cosinesim(s1: String, s2: String): Double = {
+    //val freq1 = freq(
+    
+    0.0
+  }
   
   override def main(args:Array[String]) =  { 
     /*println("Enter a file name: ")
@@ -54,5 +61,6 @@ object Main extends App {
     val nonStopFreqCounts = nonstopfreq(s, readFile("test/english-stop.txt").split(" +").toList)
     topN(nonStopFreqCounts, 10)
     paraulafreqfreq(s, 10, 5)
+    topN(ngramsfreq(s, 3), 10)
   }
 }
