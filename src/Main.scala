@@ -34,7 +34,7 @@ object Main extends App {
     
     for ( i <- s.split(" +").sliding(n,1) ) wordMap(i.mkString(" ")) += 1 //counting words
     
-    wordMap.toList.sortWith(_._2 > _._2)
+    wordMap.toList
   }
   
   def topN(freqencyList: List[(String, Int)], n: Int) = {
@@ -45,10 +45,27 @@ object Main extends App {
     for(r <- freqencyList.slice(0,n)) println(r._1 + "			" + r._2 + "	" + (r._2.toFloat/nWords)*100)
   }
   
-  def cosinesim(s1: String, s2: String): Double = {
-    //val freq1 = freq(
+  def cosinesim(s1: String, s2: String, stopwords: List[String]): Double = {
+    val freq1 = nonstopfreq(s1, stopwords); val freq2 = nonstopfreq(s2, stopwords);
+    val freq1max = freq1.maxBy(_._2)._2; val freq2max = freq2.maxBy(_._2)._2;
+    var freq1norm = freq1.map(x => (x._1, x._2.toFloat/freq1max))
+    var freq2norm = freq2.map(x => (x._1, x._2.toFloat/freq2max))
     
-    0.0
+    
+    //align vectors 1/2 O(2n^2)
+    //falta arreglar les tuples que es fiquen
+    for(w <- freq1norm) if (freq2norm.filter(_._1 == w._1).length == 0) freq2norm = (w._1, 0.toFloat)::freq2norm
+    for(w <- freq2norm) if (freq1norm.filter(_._1 == w._1).length == 0) freq1norm = (w._1, 0.toFloat)::freq1norm
+    //align vectors 2/2 O(2nLogn)
+    val smv1=freq1norm.sortWith(_._1 < _._1).map(_._2)
+    val smv2=freq2norm.sortWith(_._1 < _._1).map(_._2)
+    
+    var sim = (smv1.zip(smv2).map({case (x,y) => x*y}).foldLeft(0.toFloat)(_ + _))
+    val firstroot = Math.sqrt( smv1.map(x => Math.pow(x,2).toFloat).foldLeft(0.toFloat)(_ + _) )
+    val secondroot = Math.sqrt( smv2.map(x => Math.pow(x,2).toFloat).foldLeft(0.toFloat)(_ + _) )
+    sim /= (firstroot*secondroot).toFloat
+
+    sim
   }
   
   override def main(args:Array[String]) =  { 
@@ -56,11 +73,17 @@ object Main extends App {
     val fileName = scala.io.StdIn.readLine()
     val freqCounts = freq(readFile(fileName))*/
     val s = readFile("test/pg11.txt")
-    val freqCounts = freq(s)
+    val s2 = readFile("test/pg11-net.txt")
+    /*val freqCounts = freq(s).sortWith(_._2 > _._2)
     topN(freqCounts, 10)
-    val nonStopFreqCounts = nonstopfreq(s, readFile("test/english-stop.txt").split(" +").toList)
+    val nonStopFreqCounts = nonstopfreq(s, readFile("test/english-stop.txt").split(" +").toList).sortWith(_._2 > _._2)
     topN(nonStopFreqCounts, 10)
     paraulafreqfreq(s, 10, 5)
-    topN(ngramsfreq(s, 3), 10)
+    topN(ngramsfreq(s, 3), 10)*/
+    println("Cosine sim: ")
+    val ini =System.nanoTime()
+    println( cosinesim(readFile("test/pg11.txt"),readFile("test/pg11-net.txt"), readFile("test/english-stop.txt").split(" +").toList) )
+    val fi =System.nanoTime()
+    println("Time: " + (fi-ini).toDouble/1000000000)
   }
 }
