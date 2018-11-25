@@ -1,4 +1,4 @@
-import akka.actor
+import akka.actor._
 
 object Main extends App {
   case class WordLog(word: String, count: Int){
@@ -69,7 +69,6 @@ object Main extends App {
 
     sim
   }
-  
   /*
   def mapReduceBasic[K, V, K2, V2](
     input:    List[(K, V)],
@@ -94,6 +93,8 @@ object Main extends App {
     result
   }*/
   
+
+  
   def compareAll(folderName: String): Any = {
     var fileList = new java.io.File(folderName).listFiles//.filter(_.getName.endsWith(".xml"))
     for( i <- 0 to fileList.length -1 ){
@@ -109,26 +110,39 @@ object Main extends App {
     compareAll("test")
   }*/
   
+  class HelloActor extends Actor {
+  def receive = {
+    case "hello" => println("hello back at you")
+    case _       => println("huh?")
+    }
+  }
+  
   override def main(args:Array[String]) =  {
     //compareAll("test")
-    tractaxmldoc.main
+    //tractaxmldoc.main
     
     /*println("Enter a file name: ")
     val fileName = scala.io.StdIn.readLine()
     val freqCounts = freq(readFile(fileName))*/
-    val s = readFile("test/pg11.txt")
-    val s2 = readFile("test/pg11-net.txt")
+    /*val s = readFile("test/pg11.txt")
+    val s2 = readFile("test/pg11-net.txt")*/
     /*val freqCounts = freq(s).sortWith(_._2 > _._2)
     topN(freqCounts, 10)
     val nonStopFreqCounts = nonstopfreq(s, readFile("test/english-stop.txt").split(" +").toList).sortWith(_._2 > _._2)
     topN(nonStopFreqCounts, 10)
     paraulafreqfreq(s, 10, 5)
-    topN(ngramsfreq(s, 3), 10)*/
+    topN(ngramsfreq(s, 3), 10)
     println("Cosine sim: ")
     val ini =System.nanoTime()
     println( cosinesim(readFile("test/pg11.txt"),readFile("test/pg11-net.txt"), readFile("test/english-stop.txt").split(" +").toList) )
     val fi =System.nanoTime()
     println("Time: " + (fi-ini).toDouble/1000000000)
-    
+    */
+      val system = ActorSystem("HelloSystem")
+      // default Actor constructor
+      
+      val helloActor = system.actorOf(Props[HelloActor], name = "helloactor")
+      helloActor ! "hello"
+      helloActor ! "buenos dias"
   }
 }

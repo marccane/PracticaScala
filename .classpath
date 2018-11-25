@@ -5,6 +5,7 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="lib" path="lib/scala-xml_2.11-1.0.1-javadoc.jar"/>
 	<classpathentry kind="lib" path="lib/scala-xml_2.11-1.0.1.jar"/>
-	<classpathentry kind="lib" path="lib/akka-actor_2.11.0-M5-2.2.1.jar"/>
+	<classpathentry kind="lib" path="lib/akka-actor_2.11-2.4.11.2.jar"/>
+	<classpathentry kind="lib" path="lib/config-1.3.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
