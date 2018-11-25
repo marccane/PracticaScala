@@ -68,7 +68,11 @@ object Main extends App {
     sim
   }
   
-  override def main(args:Array[String]) =  { 
+  
+  
+  override def main(args:Array[String]) =  {
+    tractaxmldoc.main
+    
     /*println("Enter a file name: ")
     val fileName = scala.io.StdIn.readLine()
     val freqCounts = freq(readFile(fileName))*/
@@ -85,5 +89,6 @@ object Main extends App {
     println( cosinesim(readFile("test/pg11.txt"),readFile("test/pg11-net.txt"), readFile("test/english-stop.txt").split(" +").toList) )
     val fi =System.nanoTime()
     println("Time: " + (fi-ini).toDouble/1000000000)
+    
   }
 }
