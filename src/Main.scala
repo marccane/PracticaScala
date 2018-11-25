@@ -104,14 +104,14 @@ object Main extends App {
     
     "No se que retornara"
   }
-  
+  /*
   override def main(args:Array[String]) =  {
     compareAll("test")
-  }
+  }*/
   
-  def main2(args:Array[String]) =  {
-    compareAll("test")
-    //tractaxmldoc.main
+  override def main(args:Array[String]) =  {
+    //compareAll("test")
+    tractaxmldoc.main
     
     /*println("Enter a file name: ")
     val fileName = scala.io.StdIn.readLine()
