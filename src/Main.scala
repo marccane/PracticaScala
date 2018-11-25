@@ -1,6 +1,6 @@
 import akka.actor._
 
-object Main extends App {
+object FirstHalf {
   case class WordLog(word: String, count: Int){
     def frequency(total: Int) = (count toFloat) / total
   }
@@ -69,34 +69,13 @@ object Main extends App {
 
     sim
   }
-  /*
-  def mapReduceBasic[K, V, K2, V2](
-    input:    List[(K, V)],
-    mapping:  (K, V) => List[(K2, V2)],
-    reducing: (K2, List[V2]) => List[V2]): Map[K2, List[V2]] = {
-    case class Intermediate(list: List[(K2, V2)])
-    val master = self
-    val workers = for ((key, value) <- input) yield actor {
-      master ! Intermediate(mapping(key, value))
-    }
-    var intermediates = List[(K2, V2)]()
-    for (_ <- 1 to input.length)
-      receive {
-        case Intermediate(list) => intermediates :::= list
-      }
-    var dict = Map[K2, List[V2]]() withDefault (k => List())
-    for ((key, value) <- intermediates)
-      dict += (key -> (value :: dict(key)))
-    var result = Map[K2, List[V2]]()
-    for ((key, value) <- dict)
-      result += (key -> reducing(key, value))
-    result
-  }*/
   
+}
 
+object Main extends App {
   
-  def compareAll(folderName: String): Any = {
-    var fileList = new java.io.File(folderName).listFiles//.filter(_.getName.endsWith(".xml"))
+	def compareAll(folderName: String): Any = {
+    var fileList = new java.io.File(folderName).listFiles.filter(_.getName.endsWith(".xml"))
     for( i <- 0 to fileList.length -1 ){
       for( j <- i+1 to fileList.length -1 ){
         println(fileList.apply(i).getName + " -> " + fileList.apply(j).getName )
@@ -105,44 +84,23 @@ object Main extends App {
     
     "No se que retornara"
   }
-  /*
-  override def main(args:Array[String]) =  {
-    compareAll("test")
-  }*/
   
-  class HelloActor extends Actor {
-  def receive = {
-    case "hello" => println("hello back at you")
-    case _       => println("huh?")
-    }
-  }
+object MapReducer {
   
-  override def main(args:Array[String]) =  {
-    //compareAll("test")
-    //tractaxmldoc.main
+  def textanalysis() = {
     
-    /*println("Enter a file name: ")
-    val fileName = scala.io.StdIn.readLine()
-    val freqCounts = freq(readFile(fileName))*/
-    /*val s = readFile("test/pg11.txt")
-    val s2 = readFile("test/pg11-net.txt")*/
-    /*val freqCounts = freq(s).sortWith(_._2 > _._2)
-    topN(freqCounts, 10)
-    val nonStopFreqCounts = nonstopfreq(s, readFile("test/english-stop.txt").split(" +").toList).sortWith(_._2 > _._2)
-    topN(nonStopFreqCounts, 10)
-    paraulafreqfreq(s, 10, 5)
-    topN(ngramsfreq(s, 3), 10)
-    println("Cosine sim: ")
-    val ini =System.nanoTime()
-    println( cosinesim(readFile("test/pg11.txt"),readFile("test/pg11-net.txt"), readFile("test/english-stop.txt").split(" +").toList) )
-    val fi =System.nanoTime()
-    println("Time: " + (fi-ini).toDouble/1000000000)
-    */
-      val system = ActorSystem("HelloSystem")
-      // default Actor constructor
+    var fileList = new java.io.File("test").listFiles.filter(_.getName.endsWith(".txt"))
+    
+    val system = ActorSystem("TextAnalizer")
+    val master = system.actorOf(Props[MapReduceActor])
+    master ! FileProcessing(fileList)
+  }
+
+}
+	
+  override def main(args:Array[String]) =  {
       
-      val helloActor = system.actorOf(Props[HelloActor], name = "helloactor")
-      helloActor ! "hello"
-      helloActor ! "buenos dias"
+    MapReducer.textanalysis()
+    
   }
 }
