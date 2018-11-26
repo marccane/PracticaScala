@@ -90,10 +90,14 @@ object MapReducer {
   def textanalysis() = {
     
     var fileList = new java.io.File("test").listFiles.filter(_.getName.endsWith(".txt"))
+    /*
+    val system = ActorSystem("TextAnalizer")
+    val master = system.actorOf(Props[MapReduceActor])
+    master ! FileProcessing(fileList)*/
     
     val system = ActorSystem("TextAnalizer")
     val master = system.actorOf(Props[MapReduceActor])
-    master ! FileProcessing(fileList)
+    val algo = master.mapreduce()
   }
 
 }
