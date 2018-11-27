@@ -1,4 +1,9 @@
 import akka.actor._
+import akka.pattern.ask
+import scala.concurrent._
+import scala.concurrent.duration._
+import akka.util.Timeout
+import scala.language.postfixOps
 
 object FirstHalf {
   case class WordLog(word: String, count: Int){
@@ -55,7 +60,6 @@ object FirstHalf {
     
     
     //align vectors 1/2 O(2n^2)
-    //falta arreglar les tuples que es fiquen
     for(w <- freq1norm) if (freq2norm.filter(_._1 == w._1).length == 0) freq2norm = (w._1, 0.toFloat)::freq2norm
     for(w <- freq2norm) if (freq1norm.filter(_._1 == w._1).length == 0) freq1norm = (w._1, 0.toFloat)::freq1norm
     //align vectors 2/2 O(2nLogn)
@@ -109,8 +113,11 @@ object MapReducer {
     
     val input = List(("hey", 1), ("wadup",2), ("not working", 3))
     val master = system.actorOf(Props( new MapReduceActor[String, Int, String, Int](input,mappingTest, reducingTest,2,2) ))
-    master ! "start"
     
+    implicit val timeout = Timeout(10 days)
+    val futureResponse = master ? "start"
+    val result = Await.result(futureResponse, Duration.Inf)
+    println(result)
     //system.shutdown
   }
 

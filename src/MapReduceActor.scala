@@ -14,7 +14,10 @@ class MapReduceActor[K, V, K2, V2]
   case class Intermediate(list: List[(K2, V2)])
   case class Reduced(key: K2, list: List[V2])
   
+  case object Finished
+  
   val master = self
+  var invoker: akka.actor.ActorRef = null
   
   var intermediates = List[(K2, V2)]()
   var pendingIntermediates: Int = 0
@@ -24,6 +27,7 @@ class MapReduceActor[K, V, K2, V2]
   
   def receive = {
     case "start" =>
+      invoker = sender
       
       val groups = input.grouped(input.length/numMappers)
       var workers: List[akka.actor.ActorRef] = List()
@@ -74,6 +78,9 @@ class MapReduceActor[K, V, K2, V2]
     case Reduced(key, values) =>
       result += (key -> values)
       pendingReduceds -= 1
+      
+      if(pendingReduceds == 0)
+        invoker ! result
   }
   /*
   def mapReduceBasic(
