@@ -85,6 +85,16 @@ object Main extends App {
     "No se que retornara"
   }
   
+def mappingTest(s: String, i: Int): List[(String, Int)] = {
+  println("Estic mapejant " + s + " amb valor " + i)
+  List((s,i))
+}
+
+def reducingTest(s: String, l: List[Int]): List[Int] = {
+  println("Estic reduint " + s + " i " + l)
+  l:::l:::l
+}
+
 object MapReducer {
   
   def textanalysis() = {
@@ -96,8 +106,12 @@ object MapReducer {
     master ! FileProcessing(fileList)*/
     
     val system = ActorSystem("TextAnalizer")
-    val master = system.actorOf(Props[MapReduceActor])
-    val algo = master.mapreduce()
+    
+    val input = List(("hey", 1), ("wadup",2), ("not working", 3))
+    val master = system.actorOf(Props( new MapReduceActor[String, Int, String, Int](input,mappingTest, reducingTest,2,2) ))
+    master ! "start"
+    
+    //system.shutdown
   }
 
 }
