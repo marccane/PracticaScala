@@ -56,9 +56,9 @@ class MapReduceActor[K, V, K2, V2]
       
         for ((key, value) <- intermediates)
           dict += (key -> (value :: dict(key)))
-         
+        
         var workers: List[akka.actor.ActorRef] = List() 
-          
+        
         for (group <- dict.grouped(dict.size / numReducers)){
           val worker = context.actorOf(Props(new Actor {
             def receive = {

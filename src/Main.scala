@@ -17,13 +17,13 @@ object FirstHalf {
      * 							Evaluating freq() function
      */
     
-    Statistics.topN(freq(pg11).sortWith((x,y) => x._2 > y._2 || (x._2 == y._2 && x._1 < y._1)), 10)
+    Statistics.topN(freq(pg11).sortWith(lessFrequent), 10)
     
     /*
      * 							Evaluating nonstopfreq() function
      */
     
-    Statistics.topN(nonstopfreq(pg11, english_stopwords).sortWith((x,y) => x._2 > y._2 || (x._2 == y._2 && x._1 < y._1)), 10)
+    Statistics.topN(nonstopfreq(pg11, english_stopwords).sortWith(lessFrequent), 10)
     
     /*
      * 							Evaluating paraulesfreqfreq() function
@@ -35,7 +35,7 @@ object FirstHalf {
      * 							Evaluating ngrams() function
      */
     
-    Statistics.topN(ngramsfreq(pg11, 3).sortWith((x,y) => x._2 > y._2 || (x._2 == y._2 && x._1 < y._1)), 10)
+    Statistics.topN(ngramsfreq(pg11, 3).sortWith(lessFrequent), 10)
     
     
     
@@ -49,6 +49,7 @@ object FirstHalf {
     /*
      * Given a list of tuples (_ Int), it prints the tuple in a fancy way and lists the division between _._2 and the total sum of _._2 of the list
      * In our case, we use this function to print the list of frequencies of certain words in a file, being _._2 the absolute count of occurrences of this word.
+     * @param frequencyList List of tuples (_, Int)
      * @param 
      */
     def topN(freqencyList: List[(_, Int)], n: Int) = {
@@ -71,6 +72,9 @@ object FirstHalf {
       println()
     }
   }
+  
+  def lessFrequent(x: (String, Int), y: (String, Int)): Boolean = 
+    x._2 > y._2 || (x._2 == y._2 && x._1 < y._1)
   
   /*	Given a character, evaluates to true if the character meets our criteria of acceptable character not to be filtered when reading a file.
    *	@param c The character to be evaluated
