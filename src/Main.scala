@@ -57,7 +57,7 @@ object FirstHalf {
       println("N Words: " + nWords + " Diferent: " + nDiffWords)
       //println(f"Words" + " ocurrences " + " frequency")
       printf("%-30s %-11s %-10s\n", "Words", "ocurrences", "frequency")
-      for(r <- freqencyList.slice(0,n)) printf("%-30s %-11d %-10.7f\n", r._1, r._2, (r._2.toFloat/nWords)*100) //println(r._1 + "			" + r._2 + "	" + (r._2.toFloat/nWords)*100)
+      for(r <- freqencyList.slice(0,n)) printf("%-30s %-11d %-10.7f%%\n", r._1, r._2, (r._2.toFloat/nWords)*100) //println(r._1 + "			" + r._2 + "	" + (r._2.toFloat/nWords)*100)
       println()
     }
     
