@@ -73,6 +73,9 @@ object FirstHalf {
     }
   }
   
+  /*	Given two tuples 
+   * 	
+   */
   def lessFrequent(x: (String, Int), y: (String, Int)): Boolean = 
     x._2 > y._2 || (x._2 == y._2 && x._1 < y._1)
   
@@ -100,7 +103,7 @@ object FirstHalf {
    * 
    * @return A list of pairs (String, Int), being the String a word of @p s and Int being its absolute frequency
    */
-  def freq (s : String) : List[(String,Int)] = ngramsfreq(s, 1)
+  def freq (s : String) = ngramsfreq(s, 1)
   
   /* Given a string @p s and a list of excluded words @stopwords, returns the absolute frequencies of the words (substrings spaced by white spaces ' ') that @p s contains and @p stopwords does not
    * @param s A string
@@ -108,7 +111,7 @@ object FirstHalf {
    * 
    * @return A list of pairs (String, Int), being the String a word of @p s but not a word of @p stopwords, and Int being its absolute frequency
    */
-  def nonstopfreq (s: String, stopwords: List[String]): List[(String,Int)] = 
+  def nonstopfreq (s: String, stopwords: List[String]) = 
     freq(s).filterNot(x => stopwords.contains(x._1))
     
   def paraulafreqfreq(s: String): List[(Int, Int)] = {
