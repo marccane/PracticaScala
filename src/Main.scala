@@ -45,7 +45,7 @@ object FirstHalf {
    * This object contains the "fancy output" functions to evaluate the program results
    */
   object Statistics{
-    
+     
     /*
      * Given a list of tuples (_ Int), it prints the tuple in a fancy way and lists the division between _._2 and the total sum of _._2 of the list
      * In our case, we use this function to print the list of frequencies of certain words in a file, being _._2 the absolute count of occurrences of this word.
@@ -55,17 +55,20 @@ object FirstHalf {
       val nWords = freqencyList.foldLeft(0) { (total, actual) => total + actual._2 } 
       val nDiffWords = freqencyList length;
       println("N Words: " + nWords + " Diferent: " + nDiffWords)
-      println(f"Words" + " ocurrences " + " frequency")
-      for(r <- freqencyList.slice(0,n)) println(r._1 + "			" + r._2 + "	" + (r._2.toFloat/nWords)*100)
+      //println(f"Words" + " ocurrences " + " frequency")
+      printf("%-30s %-11s %-10s\n", "Words", "ocurrences", "frequency")
+      for(r <- freqencyList.slice(0,n)) printf("%-30s %-11d %-10.7f\n", r._1, r._2, (r._2.toFloat/nWords)*100) //println(r._1 + "			" + r._2 + "	" + (r._2.toFloat/nWords)*100)
+      println()
     }
     
     def paraulafreqfreqStats(frequencyList: List[(Int, Int)], nMost: Int, nLeast: Int) = {
       println("Les " + nMost + " frequencies mes frequents:")
-      for(elem <- frequencyList.slice(0, nMost)) 
+      for(elem <- frequencyList.slice(0, nMost))
         println(elem._2 + " paraules apareixen " + elem._1)
       println("Les " + nLeast + " frequencies menys frequents:")
       for(elem <- frequencyList.slice(frequencyList.length-nLeast, frequencyList.length)) 
         println(elem._2 + " paraules apareixen " + elem._1 + " vegades")
+      println()
     }
   }
   
