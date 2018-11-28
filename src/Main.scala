@@ -124,8 +124,9 @@ object MapReducer {
 }
 	
   override def main(args:Array[String]) =  {
-      
-    MapReducer.textanalysis()
+     println(tractaxmldoc.readXMLFile("wiki-xml-2ww5k/32509.xml"))
+     for(fitxer <- tractaxmldoc.openPgTxtFiles("test")) println(fitxer.getName)
+    //MapReducer.textanalysis()
     
   }
 }
