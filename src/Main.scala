@@ -17,25 +17,25 @@ object FirstHalf {
      * 							Evaluating freq() function
      */
     
-    Statistics.topN(freq(pg11), 10)
+    Statistics.topN(freq(pg11).sortWith((x,y) => x._2 > y._2 || (x._2 == y._2 && x._1 < y._1)), 10)
     
     /*
      * 							Evaluating nonstopfreq() function
      */
     
-    Statistics.topN(nonstopfreq(pg11, english_stopwords), 10)
+    Statistics.topN(nonstopfreq(pg11, english_stopwords).sortWith((x,y) => x._2 > y._2 || (x._2 == y._2 && x._1 < y._1)), 10)
     
     /*
      * 							Evaluating paraulesfreqfreq() function
      */
     
-    Statistics.paraulafreqfreqStats(paraulafreqfreq(pg11), 10, 5)
+    Statistics.paraulafreqfreqStats(paraulafreqfreq(pg11).sortWith(_._1 < _._1), 10, 5)
     
      /*
      * 							Evaluating ngrams() function
      */
     
-    Statistics.topN(ngramsfreq(pg11, 3), 10)
+    Statistics.topN(ngramsfreq(pg11, 3).sortWith((x,y) => x._2 > y._2 || (x._2 == y._2 && x._1 < y._1)), 10)
     
     
     
