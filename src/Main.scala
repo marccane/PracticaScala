@@ -36,9 +36,6 @@ object FirstHalf {
      */
     
     Statistics.topN(ngramsfreq(pg11, 3).sortWith(lessFrequent), 10)
-    
-    
-    
   }
   
   /*
@@ -204,35 +201,113 @@ object MapReducer {
   
 }
 
-def mappingTest2(filename: String, words: List[String]): List[(String, Int)] = {
-    for(word <- words) yield (word,1)
+  //Aquesta funcio es canviarà
+  def openPgTxtFiles(folder: String): Array[java.io.File] = {
+    var fileList = new java.io.File(folder).listFiles.filter(_.getName.startsWith("pg")).filter(_.getName.endsWith(".txt"))
+    fileList
   }
 
-  def reducingTest2(word: String, cosarara: List[Int]): List[Int] = {
-    //var dict = collection.mutable.Map[Int, Int] = collection.mutable.Map() withDefaultValue(0) //Map[String, List[Int]]() withDefault (k => List(0))
-    //for((paraula, ocurrencies) <- l) dict += (paraula -> dict(paraula) + ocurrencies)
-    List(cosarara.length)
-  }
 
 object MapReducer2 {
+    
+    def start() = {
+      val res1 = idf1()
+      idf2(res1.asInstanceOf[Map[String,List[String]]])
+    }
+    
+    /*def mappingTest3(filename: String, words: List[String]): List[(String, Int)] = {
+      for(word <- words) yield (word,1234)
+    }
+  
+    def reducingTest3(word: String, cosarara: List[Int]): List[Int] = {
+      List(cosarara.length)
+    }
+    
+    def loadfiles() = {
+      val files = openPgTxtFiles("test")
+      val input = for(file <- files) yield (file.getName, file)
+      
+      val system = ActorSystem("TextAnalizer2")
+      val master = system.actorOf(Props( new MapReduceActor[String, List[java.io.File], String, Int](input.toList, mappingTest2, reducingTest2, 2, 2)))
+      implicit val timeout = Timeout(10 days)
+      val futureResponse = master ? "start"
+      val result = Await.result(futureResponse, timeout.duration)
+      println(result)
+      
+      system.shutdown
+    }*/
+    
+    //--------------------------------------- Comptar ocurrencies de cada paraula que surt en una llista de paraules
+    
+    def mappingTest2(filename: String, words: List[String]): List[(String, Int)] = {
+      for(word <- words) yield (word,1234)
+    }
+  
+    def reducingTest2(word: String, cosarara: List[Int]): List[Int] = {
+      List(cosarara.length)
+    }
     
     def textanalysis2() = {
       
       val pg11 = FirstHalf.readFile("test/pg11.txt")   
-      
-      val input2 = List(("pg11.txt", pg11.split(" +").toList))
+      val input = List(("pg11.txt", pg11.split(" +").toList))
       
       val system = ActorSystem("TextAnalizer2")
-      
-      val master = system.actorOf(Props( new MapReduceActor[String, List[String], String, Int](input2, mappingTest2, reducingTest2, 2, 2) ))
-      
+      val master = system.actorOf(Props( new MapReduceActor[String, List[String], String, Int](input, mappingTest2, reducingTest2, 2, 2)))
       implicit val timeout = Timeout(10 days)
       val futureResponse = master ? "start"
       val result = Await.result(futureResponse, timeout.duration)
-      
       println(result)
       
       system.shutdown
+    }
+    
+    //--------------------------------------------------------------- idf
+    
+    def mappingTest3(file: java.io.File, words: List[String]): List[(String, java.io.File)] = {
+      for(word <- words) yield (word, file)
+    }
+  
+    def reducingTest3(word: String, files: List[java.io.File]): List[java.io.File] = {
+      files.distinct
+    }
+    
+    def idf1() = {
+      val files = openPgTxtFiles("smalltest")
+      val input = for(file <- files) yield (file, FirstHalf.readFile(file.getAbsolutePath).split(" +").toList)
+      
+      val system = ActorSystem("TextAnalizer2")
+      val master = system.actorOf(Props(new MapReduceActor[java.io.File, List[String], String, java.io.File](input.toList, mappingTest3, reducingTest3, 2, 2)))
+      implicit val timeout = Timeout(10 days)
+      val futureResponse = master ? "start"
+      val result = Await.result(futureResponse, timeout.duration)
+      //println(result)
+      
+      system.shutdown
+      result //Map[string,List[string]] (per cada paraula, llista de noms de fitxer que la contenen)
+    }
+    
+    //------------------------------idf part 2
+    
+    def mappingTest4(word: String, files: List[String]): List[(String, Int)] = {
+      List((word, files.length))
+    }
+  
+    def reducingTest4(word: String, files: List[Int]): List[Int] = {
+      files
+    }
+    
+    def idf2(lastResult: Map[String,List[String]]) = {
+
+      val system = ActorSystem("TextAnalizer2")
+      val master = system.actorOf(Props(new MapReduceActor[String, List[String], String, Int](lastResult.toList, mappingTest4, reducingTest4, 2, 2)))
+      implicit val timeout = Timeout(10 days)
+      val futureResponse = master ? "start"
+      val result = Await.result(futureResponse, timeout.duration)
+      println(result)
+      
+      system.shutdown
+      //result
     }
   }
 
@@ -241,7 +316,7 @@ object MapReducer2 {
     //println(tractaxmldoc.readXMLFile("wiki-xml-2ww5k/32509.xml"))
     //for(fitxer <- tractaxmldoc.openPgTxtFiles("test")) println(fitxer.getName)
     //MapReducer.textanalysis()
-    MapReducer2.textanalysis2()
+    MapReducer2.start()
     //FirstHalf.main()
   }
 }

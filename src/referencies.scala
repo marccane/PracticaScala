@@ -43,10 +43,4 @@ object tractaxmldoc{
 		str.toLowerCase.trim.replaceAll(" +", " ")
   }
   
-  //Aquesta funcio es canviarà
-  def openPgTxtFiles(folder: String): Array[java.io.File] = {
-    var fileList = new java.io.File(folder).listFiles.filter(_.getName.startsWith("pg")).filter(_.getName.endsWith(".txt"))
-    fileList
-  }
-  
 }
