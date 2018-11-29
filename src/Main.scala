@@ -380,20 +380,7 @@ object MapReducer2 {
     
     //MapReducer2.start()
     
-    val stopwords = FirstHalf.readFile("test/english-stop.txt").split(" +").toList
-    val files = openPgTxtFiles("test", "pg", ".txt")
-    
-    val input = ( for( file <- files) yield (file.getName, (file.getAbsolutePath, stopwords)) ).toList
-
-    val system = ActorSystem("TextAnalizer2")
-
-    val master = system.actorOf(Props(new MapReduceActor[String, (String, List[String]), String, (String, Int)](input, MapReduceEnric.mapping1, MapReduceEnric.reducing1, 2, 2)))
-    implicit val timeout = Timeout(10 days)
-    val futureResponse = master ? "start"
-    val result = Await.result(futureResponse, timeout.duration)
-    system.shutdown
-    print(result)
-    //MapReduceEnric.reducing1("hey", List(("hey", 1), ("hey", 1), ("hola", 1)))
+    MapReduceEnric.main1()
   }
 }
 
@@ -412,5 +399,22 @@ object MapReduceEnric{
       yield (word, count_list.map( {case (_, count) => count } ).reduceLeft( _ + _))
       
     res.sortWith(FirstHalf.moreFrequent)
+  }
+  
+  def main1() = {
+    val stopwords = FirstHalf.readFile("test/english-stop.txt").split(" +").toList
+    val files = Main.openPgTxtFiles("test", "pg", ".txt")
+    
+    val input = ( for( file <- files) yield (file.getName, (file.getAbsolutePath, stopwords)) ).toList
+
+    val system = ActorSystem("TextAnalizer2")
+
+    val master = system.actorOf(Props(new MapReduceActor[String, (String, List[String]), String, (String, Int)](input, MapReduceEnric.mapping1, MapReduceEnric.reducing1, 2, 2)))
+    implicit val timeout = Timeout(10 days)
+    val futureResponse = master ? "start"
+    val result = Await.result(futureResponse, timeout.duration)
+    system.shutdown
+    print(result)
+  
   }
 }
