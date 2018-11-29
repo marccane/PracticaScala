@@ -21,7 +21,6 @@ object FirstHalf {
     val fileSet = new java.io.File("test").listFiles.filter((x) => x.getName.startsWith("pg") && x.getName.endsWith(".txt")).toSet
     
     
-    
     /*
      * 							Evaluating freq() function
      */
@@ -297,7 +296,7 @@ object MapReducer2 {
       val idfList = for(i <- res2) yield (i._1, math.log10(nDocuments/i._2.apply(0))) //calculem idf per cada paraula que apareix en el conjunt de documents
       //Segur que és el logaritme en base 10? Podria ser un map en comptes d'una list
       
-      //for(idf <- idfList) println(idf._1 + " -> " + idf._2)
+      for(idf <- idfList) println(idf._1 + " -> " + idf._2)
     }
     
     //--------------------- tf: Comptar num d'ocurrencies de cada paraula que su en UN document ---------------------
@@ -374,12 +373,52 @@ object MapReducer2 {
 	
   override def main(args:Array[String]) =  {
     //println(tractaxmldoc.readXMLFile("wiki-xml-2ww5k/32509.xml"))
-    tractaxmldoc.exempleMateu
+    //tractaxmldoc.exempleMateu
     //for(fitxer <- tractaxmldoc.openPgTxtFiles("test")) println(fitxer.getName)
     
     //FirstHalf.main()
+
     //val t1 = System.nanoTime
     //MapReducer2.start()
     //println("Temps: " + (System.nanoTime-t1)/Math.pow(10,9))
+
+    //MapReducer2.start()
+    
+    MapReduceEnric.main1()
+  }
+}
+
+object MapReduceEnric{
+  def mapping1(file_name: String, file: (String, List[String])): List[(String, (String, Int))] = {
+    val wordList = FirstHalf.readFile(file._1).split(" +").toList.filterNot(file._2.contains(_))
+    
+    val x = (for(word <- wordList) yield (file_name, (word, 1)))//.groupBy(_._1)
+    x
+  }
+  
+  //key-> Filename, values-> list of (Word, count)
+  def reducing1(key: String, values: List[(String, Int)]): List[(String, Int)] = {
+    val res = for( (word, count_list) <- values.groupBy(_._1).toList ) 
+      //For every pair of word and list of counts, add up its counts
+      yield (word, count_list.map( {case (_, count) => count } ).reduceLeft( _ + _))
+      
+    res.sortWith(FirstHalf.moreFrequent)
+  }
+  
+  def main1() = {
+    val stopwords = FirstHalf.readFile("test/english-stop.txt").split(" +").toList
+    val files = Main.openPgTxtFiles("test", "pg", ".txt")
+    
+    val input = ( for( file <- files) yield (file.getName, (file.getAbsolutePath, stopwords)) ).toList
+
+    val system = ActorSystem("TextAnalizer2")
+
+    val master = system.actorOf(Props(new MapReduceActor[String, (String, List[String]), String, (String, Int)](input, MapReduceEnric.mapping1, MapReduceEnric.reducing1, 2, 2)))
+    implicit val timeout = Timeout(10 days)
+    val futureResponse = master ? "start"
+    val result = Await.result(futureResponse, timeout.duration)
+    system.shutdown
+    print(result)
+  
   }
 }
