@@ -4,6 +4,7 @@ import scala.concurrent._
 import scala.concurrent.duration._
 import akka.util.Timeout
 import scala.language.postfixOps
+import scala.math
 
 object FirstHalf {
   
@@ -286,12 +287,20 @@ object MapReducer2 {
     }*/
   
     def start() = {
-      val res1 = idf1().asInstanceOf[Map[String,List[String]]] //Map[paraula, List[paths absoluts al fitxer que la contenen]]
+      val folder = "smalltest"
+      
+      val res1 = idf1(folder).asInstanceOf[Map[String,List[String]]] //Map[paraula, List[paths absoluts al fitxer que la contenen]]
       val res2 = idf2(res1).asInstanceOf[Map[String,List[Int]]] //Map[paraula, List[Ocurrències al conjunt de fitxers C]]
-      for(i <- res2) println(i._1 + " -> " + i._2.apply(0))
+      for(i <- res2) println(i._1 + " -> " + i._2.apply(0)) //els valors van de 0 a nDocuments
+      
+      val nDocuments = openPgTxtFiles(folder, "pg", ".txt").length //Nombre de documents en el conjunt C
+      val idfList = for(i <- res2) yield (i._1, math.log10(nDocuments/i._2.apply(0))) //calculem idf per cada paraula que apareix en el conjunt de documents
+      //Segur que és el logaritme en base 10? Podria ser un map en comptes d'una list
+      
+      for(idf <- idfList) println(idf._1 + " -> " + idf._2)
     }
     
-    //--------------------- Comptar ocurrencies de cada paraula que surt en una llista de paraules ---------------------
+    //--------------------- tf: Comptar ocurrencies de cada paraula que surt en un document ---------------------
     
     def mappingTest(filename: String, words: List[String]): List[(String, Int)] = {
       for(word <- words) yield (word,1234)
@@ -311,12 +320,12 @@ object MapReducer2 {
       implicit val timeout = Timeout(10 days)
       val futureResponse = master ? "start"
       val result = Await.result(futureResponse, timeout.duration)
-      println(result)
-      
       system.shutdown
+      
+      println(result)
     }
     
-    //--------------------- idf1 ---------------------
+    //--------------------- df1 ---------------------
     
     def mappingIdf1(file: java.io.File, words: List[String]): List[(String, java.io.File)] = {
       for(word <- words) yield (word, file)
@@ -326,8 +335,8 @@ object MapReducer2 {
       files.distinct
     }
     
-    def idf1() = {
-      val files = openPgTxtFiles("smalltest", "pg", ".txt")
+    def idf1(folder: String) = {
+      val files = openPgTxtFiles(folder, "pg", ".txt")
       val input = for(file <- files) yield (file, FirstHalf.readFile(file.getAbsolutePath).split(" +").toList)
       
       val system = ActorSystem("TextAnalizer2")
@@ -337,11 +346,10 @@ object MapReducer2 {
       val result = Await.result(futureResponse, timeout.duration)
       system.shutdown
       
-      //println(result)
-      result //Map[string,List[string]] (per cada paraula, llista de noms de fitxer que la contenen)
+      result //Map[string,List[string]] (per cada paraula, llista fitxers que la contenen) -------> podria ser una string amb el nom del fitxer
     }
     
-    //--------------------- idf2 ---------------------
+    //--------------------- df2 ---------------------
     
     def mappingIdf2(word: String, files: List[String]): List[(String, Int)] = {
       List((word, files.length))
@@ -360,11 +368,9 @@ object MapReducer2 {
       val result = Await.result(futureResponse, timeout.duration)
       system.shutdown
       
-      //println(result)
       result
     }
   }
-
 	
   override def main(args:Array[String]) =  {
     //println(tractaxmldoc.readXMLFile("wiki-xml-2ww5k/32509.xml"))
