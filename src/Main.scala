@@ -220,8 +220,8 @@ object Main extends App {
   }
 	
   //Aquesta funcio es canviarà
-  def openPgTxtFiles(folder: String): Array[java.io.File] = {
-    var fileList = new java.io.File(folder).listFiles.filter(_.getName.startsWith("pg")).filter(_.getName.endsWith(".txt"))
+  def openPgTxtFiles(folder: String, startsWith: String, endsWith: String): Array[java.io.File] = {
+    var fileList = new java.io.File(folder).listFiles.filter(_.getName.startsWith(startsWith)).filter(_.getName.endsWith(endsWith))
     fileList
   }
   
@@ -327,7 +327,7 @@ object MapReducer2 {
     }
     
     def idf1() = {
-      val files = openPgTxtFiles("smalltest")
+      val files = openPgTxtFiles("smalltest", "pg", ".txt")
       val input = for(file <- files) yield (file, FirstHalf.readFile(file.getAbsolutePath).split(" +").toList)
       
       val system = ActorSystem("TextAnalizer2")
