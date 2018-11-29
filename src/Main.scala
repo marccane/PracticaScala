@@ -9,24 +9,29 @@ object FirstHalf {
   
   def main() = {
     
-    val english_stopwords = readFile("test/english-stop.txt").split(" +").toList
+    //load stopwords
+    val english_stopwords = readFile("test/english-stop.txt").split(" +").toList 
     
+    //load pg11 and pg11-net
     val pg11 = readFile("test/pg11.txt")
     val pg11_net = readFile("test/pg11-net.txt")
     
+    //load all the files that will be evaluated with cosinesim()
     val fileSet = new java.io.File("test").listFiles.filter((x) => x.getName.startsWith("pg") && x.getName.endsWith(".txt")).toSet
+    
+    
     
     /*
      * 							Evaluating freq() function
      */
     
-    Statistics.topN(freq(pg11).sortWith(lessFrequent), 10)
+    Statistics.topN(freq(pg11).sortWith(moreFrequent), 10)
     
     /*
      * 							Evaluating nonstopfreq() function
      */
     
-    Statistics.topN(nonstopfreq(pg11, english_stopwords).sortWith(lessFrequent), 10)
+    Statistics.topN(nonstopfreq(pg11, english_stopwords).sortWith(moreFrequent), 10)
     
     /*
      * 							Evaluating paraulesfreqfreq() function
@@ -38,7 +43,7 @@ object FirstHalf {
      * 							Evaluating ngrams() function
      */
     
-    Statistics.topN(ngramsfreq(pg11, 3).sortWith(lessFrequent), 10)
+    Statistics.topN(ngramsfreq(pg11, 3).sortWith(moreFrequent), 10)
     
     /*
      * 							Evaluating cosinesim() function
@@ -66,10 +71,10 @@ object FirstHalf {
   object Statistics{
      
     /*
-     * Given a list of tuples (_ Int), it prints the tuple in a fancy way and lists the division between _._2 and the total sum of _._2 of the list
+     * Given a list of tuples (_ Int), it prints the tuple in a fancy way and lists the division between _._2 and the total sum of _._2 of all the tuples on the list
      * In our case, we use this function to print the list of frequencies of certain words in a file, being _._2 the absolute count of occurrences of this word.
      * @param frequencyList List of tuples (_, Int)
-     * @param 
+     * @param n Number of elements to be shown
      */
     def topN(freqencyList: List[(_, Int)], n: Int) = {
       val nWords = freqencyList.foldLeft(0) { (total, actual) => total + actual._2 } 
@@ -80,6 +85,11 @@ object FirstHalf {
       println()
     }
     
+    /*	Given a frequency list "List[(Int, Int)]", a nMost and a nLeast number, it shows (in a fancy way) the first nMost and the last nLeast elements of the list
+     * 	@param frequenctList The frequency list
+     * 	@param nMost Number of top elements to show
+     * 	@param nLeast Number of bottom elements to show
+     */
     def paraulafreqfreqStats(frequencyList: List[(Int, Int)], nMost: Int, nLeast: Int) = {
       println("Les " + nMost + " frequencies mes frequents:")
       for(elem <- frequencyList.slice(0, nMost))
@@ -90,21 +100,26 @@ object FirstHalf {
       println()
     }
     
+    /*	Given two strings (representing file names) and a number (representing its cosinesim), prints the explaination of how this three values correlate to each other
+     * 	@param s1 First string
+     * 	@param s2 Second string
+     * 	@param cosinesim The number
+     */
     def cosineSimStat(s1: String, s2: String, cosinesim: Double) = {
       printf("La similitud cosinus entre %s i %s es de %10.10f\n", s1, s2, cosinesim)
     }
   }
   
-  /*	Given two tuples 
-   * 	
+  /*	Given two tuples @p x and @p y, evaluates to true if the second element of the y is smaller than the second element of x. On draw, it reverses
+   * 	the criteria and evaluates to true if the first element of x is smaller thant the first element of y.
+   * 	@param x First tuple
+   * 	@param y Second tuple
    */
-  def lessFrequent(x: (String, Int), y: (String, Int)): Boolean = 
+  def moreFrequent(x: (String, Int), y: (String, Int)): Boolean = 
     x._2 > y._2 || (x._2 == y._2 && x._1 < y._1)
   
   /*	Given a character, evaluates to true if the character meets our criteria of acceptable character not to be filtered when reading a file.
    *	@param c The character to be evaluated
-   * 
-   * 	@return true if c is a letter or a white space ' ', false otherwise
    */
   def acceptableChar(c: Char): Boolean = c.isLetter || c == ' '
   
@@ -112,7 +127,6 @@ object FirstHalf {
    * 	@param filename the file path of the file to be readed
    * 	
    * 	@pre File must exist, otherwise will throw an exception
-   * 	@return A representative string of the file only containing lower case letters and white spaces.
    */
   def readFile(filename : String) : String = {
   	val source = scala.io.Source.fromFile(filename)
@@ -120,22 +134,23 @@ object FirstHalf {
 		str.toLowerCase.trim
   }
   
-  /* Given a string @p s, returns the absolute frequencies of the words (substrings spaced by white spaces ' ') that @p s contains
+  /* Given a string @p s, evaluates as a list of absolute frequencies of the words (substrings spaced by white spaces ' ') that @p s contains.
+   * More specifically, it evaluates as a list of pairs (String, Int), being the String a word of @p s and Int being its absolute frequency
    * @param s A string
-   * 
-   * @return A list of pairs (String, Int), being the String a word of @p s and Int being its absolute frequency
    */
   def freq (s : String) = ngramsfreq(s, 1)
   
-  /* Given a string @p s and a list of excluded words @stopwords, returns the absolute frequencies of the words (substrings spaced by white spaces ' ') that @p s contains and @p stopwords does not
+  /* Given a string @p s and a list of excluded words @stopwords, evaluates as the absolute frequencies of the words (substrings spaced by white spaces ' ') that @p s contains and @p stopwords does not
+   * More specifically, it evaluates as a list of pairs (String, Int), being the String a word of @p s but not a word of @p stopwords, and Int being its absolute frequency
    * @param s A string
    * @param stopwords A list of strings
-   * 
-   * @return A list of pairs (String, Int), being the String a word of @p s but not a word of @p stopwords, and Int being its absolute frequency
    */
   def nonstopfreq (s: String, stopwords: List[String]) = 
     freq(s).filterNot(x => stopwords.contains(x._1))
     
+  /* 	Given a string representing a document, it computes the frequencies of the frequencies of its words
+   * 	@param s String representing a document (string with white spaces)
+   */
   def paraulafreqfreq(s: String): List[(Int, Int)] = {
     val freqfreqMap: collection.mutable.Map[Int, Int] = collection.mutable.Map() withDefaultValue(0)
     val frequencies = freq(s)
@@ -143,7 +158,11 @@ object FirstHalf {
     
     freqfreqMap.toList.sortWith((x,y) => x._2 > y._2 || (x._2 == y._2 && x._1 < y._1))
   }
-    
+  
+  /*	Given a string representing a document (string with white spaces), it computes the frequency of all the ngrams of size n on that document
+   * 	@param s String representing the document
+   * 	@param n Length of the ngrams
+   */
   def ngramsfreq(s: String, n: Int): List[(String,Int)] = {
     val wordMap: collection.mutable.Map[String, Int] = collection.mutable.Map() withDefaultValue(0);
     
@@ -152,8 +171,11 @@ object FirstHalf {
     wordMap.toList
   }
   
-  
-  
+  /*	Given two strings representing two filtered documents, and a list of words that will be filtered, it computes its cosine similarity
+   * 	@param s1 First document
+   * 	@param s2 Second document
+   * 	@param stopwords List of words that will be discarded
+   */
   def cosinesim(s1: String, s2: String, stopwords: List[String]): Double = {
     val freq1 = nonstopfreq(s1, stopwords).toMap; 
     val freq2 = nonstopfreq(s2, stopwords).toMap;
