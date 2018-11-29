@@ -10,8 +10,11 @@ object FirstHalf {
   def main() = {
     
     val english_stopwords = readFile("test/english-stop.txt").split(" +").toList
+    
     val pg11 = readFile("test/pg11.txt")
     val pg11_net = readFile("test/pg11-net.txt")
+    
+    val fileSet = new java.io.File("test").listFiles.filter((x) => x.getName.startsWith("pg") && x.getName.endsWith(".txt")).toSet
     
     /*
      * 							Evaluating freq() function
@@ -37,7 +40,23 @@ object FirstHalf {
     
     Statistics.topN(ngramsfreq(pg11, 3).sortWith(lessFrequent), 10)
     
+    /*
+     * 							Evaluating cosinesim() function
+     */
     
+    println(s"Similitud cosinus entre totes les permutacions dels fitxers: \n''${fileSet.mkString("'',''")}''")
+    println("| ") 
+    
+    for(pair <- fileSet.subsets(2)){
+      val t1 = System.nanoTime
+      val file_1 = pair.head
+      val file_2 = pair.tail.head
+      val file_1_str = readFile(file_1.getAbsolutePath)
+      val file_2_str = readFile(file_2.getAbsolutePath)
+      print("| ")      
+      Statistics.cosineSimStat(file_1.getName, file_2.getName, cosinesim(file_1_str, file_2_str, english_stopwords))
+      println("|	Calculada en temps: " + (System.nanoTime-t1)/Math.pow(10,9))
+    }
     
   }
   
@@ -56,7 +75,6 @@ object FirstHalf {
       val nWords = freqencyList.foldLeft(0) { (total, actual) => total + actual._2 } 
       val nDiffWords = freqencyList length;
       println("N Words: " + nWords + " Diferent: " + nDiffWords)
-      //println(f"Words" + " ocurrences " + " frequency")
       printf("%-30s %-11s %-10s\n", "Words", "ocurrences", "frequency")
       for(r <- freqencyList.slice(0,n)) printf("%-30s %-11d %-10.7f%%\n", r._1, r._2, (r._2.toFloat/nWords)*100) //println(r._1 + "			" + r._2 + "	" + (r._2.toFloat/nWords)*100)
       println()
@@ -70,6 +88,10 @@ object FirstHalf {
       for(elem <- frequencyList.slice(frequencyList.length-nLeast, frequencyList.length)) 
         println(elem._2 + " paraules apareixen " + elem._1 + " vegades")
       println()
+    }
+    
+    def cosineSimStat(s1: String, s2: String, cosinesim: Double) = {
+      printf("La similitud cosinus entre %s i %s es de %10.10f\n", s1, s2, cosinesim)
     }
   }
   
@@ -133,25 +155,31 @@ object FirstHalf {
   
   
   def cosinesim(s1: String, s2: String, stopwords: List[String]): Double = {
-    val freq1 = nonstopfreq(s1, stopwords); val freq2 = nonstopfreq(s2, stopwords);
-    val freq1max = freq1.maxBy(_._2)._2; val freq2max = freq2.maxBy(_._2)._2;
-    var freq1norm = freq1.map(x => (x._1, x._2.toFloat/freq1max))
-    var freq2norm = freq2.map(x => (x._1, x._2.toFloat/freq2max))
+    val freq1 = nonstopfreq(s1, stopwords).toMap; 
+    val freq2 = nonstopfreq(s2, stopwords).toMap;
+    val freq1max = freq1.values.max
+    val freq2max = freq2.values.max
     
+    //normalizing vectors
+    val freq1norm = freq1.map{ case (key, value) => (key, value.toDouble/freq1max) }
+    val freq2norm = freq2.map{ case (key, value) => (key, value.toDouble/freq2max) }
     
-    //align vectors 1/2 O(2n^2)
-    for(w <- freq1norm) if (freq2norm.filter(_._1 == w._1).length == 0) freq2norm = (w._1, 0.toFloat)::freq2norm
-    for(w <- freq2norm) if (freq1norm.filter(_._1 == w._1).length == 0) freq1norm = (w._1, 0.toFloat)::freq1norm
-    //align vectors 2/2 O(2nLogn)
-    val smv1=freq1norm.sortWith(_._1 < _._1).map(_._2)
-    val smv2=freq2norm.sortWith(_._1 < _._1).map(_._2)
+    //aligning vectors
+    val smv1 = freq2norm.map({ case (key, value) => (key, 0.0)}) ++ freq1norm
+    val smv2 = freq1norm.map({ case (key, value) => (key, 0.0)}) ++ freq2norm
     
-    var sim = (smv1.zip(smv2).map({case (x,y) => x*y}).foldLeft(0.toFloat)(_ + _))
-    val firstroot = Math.sqrt( smv1.map(x => Math.pow(x,2).toFloat).foldLeft(0.toFloat)(_ + _) )
-    val secondroot = Math.sqrt( smv2.map(x => Math.pow(x,2).toFloat).foldLeft(0.toFloat)(_ + _) )
-    sim /= (firstroot*secondroot).toFloat
-
-    sim
+    //simplify vectors
+    val smv1_vec = smv1.values.map(x => x.asInstanceOf[Double])
+    val smv2_vec = smv2.values.map(x => x.asInstanceOf[Double])
+    
+    //compute cosinesim
+    val term = smv1_vec.zip(smv2_vec).map(x => x._1 * x._2).reduceLeft( _ + _ )
+    
+    def euclidean_norm(v: Iterable[Double]) = {
+      Math.sqrt( v.map( x => x*x ).reduceLeft( _ + _ ) )
+    }
+    
+    term / (euclidean_norm(smv1_vec) * euclidean_norm(smv2_vec))
   }
     
 }
@@ -241,7 +269,7 @@ object MapReducer2 {
     //println(tractaxmldoc.readXMLFile("wiki-xml-2ww5k/32509.xml"))
     //for(fitxer <- tractaxmldoc.openPgTxtFiles("test")) println(fitxer.getName)
     //MapReducer.textanalysis()
-    MapReducer2.textanalysis2()
-    //FirstHalf.main()
+    //MapReducer2.textanalysis2()
+    FirstHalf.main()
   }
 }
