@@ -291,16 +291,16 @@ object MapReducer2 {
       
       val res1 = idf1(folder).asInstanceOf[Map[String,List[String]]] //Map[paraula, List[paths absoluts al fitxer que la contenen]]
       val res2 = idf2(res1).asInstanceOf[Map[String,List[Int]]] //Map[paraula, List[Ocurrències al conjunt de fitxers C]]
-      for(i <- res2) println(i._1 + " -> " + i._2.apply(0)) //els valors van de 0 a nDocuments
+      //for(i <- res2) println(i._1 + " -> " + i._2.apply(0)) //els valors van de 0 a nDocuments
       
-      val nDocuments = openPgTxtFiles(folder, "pg", ".txt").length //Nombre de documents en el conjunt C
+      val nDocuments = openPgTxtFiles(folder, "pg", ".txt").length.toDouble //Nombre de documents en el conjunt C
       val idfList = for(i <- res2) yield (i._1, math.log10(nDocuments/i._2.apply(0))) //calculem idf per cada paraula que apareix en el conjunt de documents
       //Segur que és el logaritme en base 10? Podria ser un map en comptes d'una list
       
       for(idf <- idfList) println(idf._1 + " -> " + idf._2)
     }
     
-    //--------------------- tf: Comptar ocurrencies de cada paraula que surt en un document ---------------------
+    //--------------------- tf: Comptar ocurrencies de cada paraula que surt en UN document ---------------------
     
     def mappingTest(filename: String, words: List[String]): List[(String, Int)] = {
       for(word <- words) yield (word,1234)
