@@ -154,6 +154,39 @@ object FirstHalf {
     sim
   }
   
+  def mappingTest2(filename: String, words: List[String]): List[(String, Int)] = {
+    for(word <- words) yield (word,1)
+  }
+
+  def reducingTest2(word: String, cosarara: List[Int]): List[Int] = {
+    //var dict = collection.mutable.Map[Int, Int] = collection.mutable.Map() withDefaultValue(0) //Map[String, List[Int]]() withDefault (k => List(0))
+    //for((paraula, ocurrencies) <- l) dict += (paraula -> dict(paraula) + ocurrencies)
+    List(cosarara.length)
+  }
+
+  object MapReducer2 {
+    
+    def textanalysis2() = {
+      
+      val pg11 = readFile("test/pg11.txt")
+      print(pg11)
+      
+      val system = ActorSystem("TextAnalizer")
+      
+      //val input2 = List((pg11,()))
+      val input2 = List(("pg11.txt", pg11.split(" ").toList))
+      
+      val master = system.actorOf(Props( new MapReduceActor[String, List[String], String, Int](input2, mappingTest2, reducingTest2, 2, 2) ))
+      
+      implicit val timeout = Timeout(10 days)
+      val futureResponse = master ? "start"
+      val result = Await.result(futureResponse, Duration.Inf)
+      println(result)
+      
+      system.shutdown
+    }
+  }
+  
 }
 
 object Main extends App {
@@ -201,14 +234,14 @@ object MapReducer {
     
     system.shutdown
   }
-
+  
 }
 	
   override def main(args:Array[String]) =  {
     //println(tractaxmldoc.readXMLFile("wiki-xml-2ww5k/32509.xml"))
     //for(fitxer <- tractaxmldoc.openPgTxtFiles("test")) println(fitxer.getName)
     //MapReducer.textanalysis()
-     
-    FirstHalf.main()
+    FirstHalf.MapReducer2.textanalysis2()
+    //FirstHalf.main()
   }
 }
