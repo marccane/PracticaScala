@@ -29,22 +29,28 @@ class MapReduceActor[K, V, K2, V2]
     case "start" =>
       invoker = sender
       
-      val groups = input.grouped(input.length/numMappers)
-      var workers: List[akka.actor.ActorRef] = List()
+      if (input.length > 0) {
       
-      for (group <- groups) {
-        val worker = context.actorOf(Props(new Actor {
-          def receive = {
-            case MapOrder(key, value, mapping) => sender ! Intermediate(mapping(key, value))
-          }
-        }))
+        val groupSize = if (input.length/numMappers == 0) 1 else input.length/numMappers
+        val groups = input.grouped(groupSize)
+
+        var workers: List[akka.actor.ActorRef] = List()
         
-        workers ::= worker
+        for (group <- groups) {
+          val worker = context.actorOf(Props(new Actor {
+            def receive = {
+              case MapOrder(key, value, mapping) => sender ! Intermediate(mapping(key, value))
+            }
+          }))
+          
+          workers ::= worker
+          
+          for ((key, value) <- group) worker ! MapOrder(key, value, mapping)
+        }
         
-        for ((key, value) <- group) worker ! MapOrder(key, value, mapping)
+        pendingIntermediates = input.length
       }
-      
-      pendingIntermediates = input.length
+      else invoker ! Map()
       
     case Intermediate(list) => 
       intermediates = list ::: intermediates
@@ -59,7 +65,10 @@ class MapReduceActor[K, V, K2, V2]
         
         var workers: List[akka.actor.ActorRef] = List() 
         
-        for (group <- dict.grouped(dict.size / numReducers)){
+        val groupSize = if (dict.size/numMappers == 0) 1 else dict.size/numMappers
+        val groups = dict.grouped(groupSize)
+        
+        for (group <- groups){
           val worker = context.actorOf(Props(new Actor {
             def receive = {
               case ReduceOrder(key, values, reducing) => sender ! Reduced(key, reducing(key, values))
