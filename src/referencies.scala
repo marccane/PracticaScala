@@ -31,6 +31,18 @@ object tractaxmldoc{
 	  println(kk.length)
 	}
 	
+	def titols(){
+	  val files = Main.openPgTxtFiles("smallxml", "", ".xml")
+    //val input = for(file <- files) yield (file.getName, FirstHalf.readFile(file.getAbsolutePath).split(" +").toList)
+	  
+	  for(file<-files){
+  	  val xmlleg=new java.io.InputStreamReader(new java.io.FileInputStream(file), "UTF-8")
+  	  val xmllegg = XML.load(xmlleg)
+  	  val titol=(xmllegg \\ "title").text
+  	  println("Titol: " + titol)
+	  }
+	}
+	
   def acceptableChar(c: Char): Boolean = c.isLetter || c == ' ' //|| c == '\''
   
   //Given an xml file, extracts the contents of the text region and produces a representative string that only contains lower case characters and spaces
