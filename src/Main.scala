@@ -115,7 +115,7 @@ object FirstHalf {
    * 	@param x First tuple
    * 	@param y Second tuple
    */
-  def moreFrequent(x: (String, Int), y: (String, Int)): Boolean = 
+  def moreFrequent[A <% Ordered[A],B <% Ordered[B]](x: (A, B), y: (A, B)): Boolean = 
     x._2 > y._2 || (x._2 == y._2 && x._1 < y._1)
   
   /*	Given a character, evaluates to true if the character meets our criteria of acceptable character not to be filtered when reading a file.
@@ -389,42 +389,71 @@ object MapReducer2 {
 }
 
 object MapReduceEnric{
-  def mapping1(file_name: String, file: (String, List[String])): List[(String, (String, Int))] = {
+  def mapping1(file_name: String, file: (String, List[String])): List[(String, (String, Double))] = {
     val wordList = FirstHalf.readFile(file._1).split(" +").toList.filterNot(file._2.contains(_))
     
-    val x = (for(word <- wordList) yield (file_name, (word, 1)))//.groupBy(_._1)
+    val x = (for(word <- wordList) yield (file_name, (word, 1.toDouble)))
     x
   }
   
   //key-> Filename, values-> list of (Word, count)
-  def reducing1(key: String, values: List[(String, Int)]): List[(String, Int)] = {
+  def reducing1(key: String, values: List[(String, Double)]): List[(String, Double)] = {
     val res = for( (word, count_list) <- values.groupBy(_._1).toList ) 
       //For every pair of word and list of counts, add up its counts
       yield (word, count_list.map( {case (_, count) => count } ).reduceLeft( _ + _))
-      
-    res.sortWith(FirstHalf.moreFrequent)
+    
+    val max_freq = res.map(_._2).max
+    
+    res.sortWith(FirstHalf.moreFrequent).map(x => (x._1, x._2/max_freq))
+  }
+  
+  
+  def mapping2(file_name: String, word_count: List[(String, Int)]): List[(String, String)] = {
+    word_count.map(x => (x._1, file_name))
+  }
+  
+  def reducing2(word: String, files: List[String]): List[String] = {
+    files
+  }
+  
+  
+  def cosinesim2() = {
+    0
   }
   
   def main1() = {
+    
+    println("Calculs iniciats...")
+    val t1 = System.nanoTime
+    
     val stopwords = FirstHalf.readFile("test/english-stop.txt").split(" +").toList
     val files = Main.openPgTxtFiles("test", "pg", ".txt")
+    implicit val timeout = Timeout(10 days)
+    
+    val nMappers = 10
+    val nReducers = 10
     
     val input = ( for( file <- files) yield (file.getName, (file.getAbsolutePath, stopwords)) ).toList
 
     val system = ActorSystem("TextAnalizer2")
 
-    var master = system.actorOf(Props(new MapReduceActor[String, (String, List[String]), String, (String, Int)](input, MapReduceEnric.mapping1, MapReduceEnric.reducing1, 2, 2)))
-    implicit val timeout = Timeout(10 days)
-    val futureResponse = master ? "start"
-    val result = Await.result(futureResponse, timeout.duration)
+    var master = system.actorOf(Props(new MapReduceActor[String, (String, List[String]), String, (String, Double)](input, MapReduceEnric.mapping1, MapReduceEnric.reducing1, nMappers, nReducers)))
+    
+    val futureResponse1 = master ? "start"
+    val tf = Await.result(futureResponse1, timeout.duration).asInstanceOf[Map[String, List[(String, Int)]]]
     
     system.stop(master)
     
-    master = system.actorOf(Props(new MapReduceActor[String, (String, List[String]), String, (String, Int)](input, MapReduceEnric.mapping1, MapReduceEnric.reducing1, 2, 2)))
+    master = system.actorOf(Props(new MapReduceActor[String, List[(String, Int)], String, String](tf.toList, MapReduceEnric.mapping2, MapReduceEnric.reducing2, nMappers, nReducers)))
     
-    print(result)
-  
+    val futureResponse2 = master ? "start"
+    val df = Await.result(futureResponse2, timeout.duration)
+    
+    val finalInput = 0
+    
     system.shutdown
+    
+    println("Calculs finalitzats. Temps total: " + (System.nanoTime-t1)/Math.pow(10,9))
     
   }
 }
