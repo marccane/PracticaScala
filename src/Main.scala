@@ -409,12 +409,18 @@ object MapReduceEnric{
 
     val system = ActorSystem("TextAnalizer2")
 
-    val master = system.actorOf(Props(new MapReduceActor[String, (String, List[String]), String, (String, Int)](input, MapReduceEnric.mapping1, MapReduceEnric.reducing1, 2, 2)))
+    var master = system.actorOf(Props(new MapReduceActor[String, (String, List[String]), String, (String, Int)](input, MapReduceEnric.mapping1, MapReduceEnric.reducing1, 2, 2)))
     implicit val timeout = Timeout(10 days)
     val futureResponse = master ? "start"
     val result = Await.result(futureResponse, timeout.duration)
-    system.shutdown
+    
+    system.stop(master)
+    
+    master = system.actorOf(Props(new MapReduceActor[String, (String, List[String]), String, (String, Int)](input, MapReduceEnric.mapping1, MapReduceEnric.reducing1, 2, 2)))
+    
     print(result)
   
+    system.shutdown
+    
   }
 }
