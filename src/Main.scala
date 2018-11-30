@@ -425,13 +425,14 @@ object SecondHalf {
   object MapReduceRef {
   
     def mapping1(title: String, referencedDocs: List[String]): List[(String, String)] = {
-      for( doc <- referencedDocs) yield (doc, title) //document, document que fa referencia al primer
+      for(doc <- referencedDocs) yield (doc, title) //document, document that references the first one
     }
   
     def reducing1(title: String, docsRefer: List[String]): List[String] = {
       docsRefer.distinct
     }
     
+    /*
     def mapping2(title: String, tuple: (List[String],List[String])): List[(String, String)] = {
       val allTitles = tuple._2
       for(titleRef <- allTitles; if(!tuple._1.contains(titleRef))) yield (title, titleRef)
@@ -439,7 +440,7 @@ object SecondHalf {
   
     def reducing2(title: String, docsRefer: List[String]): List[String] = {
       docsRefer
-    }
+    }*/
     
     def mapReduceDocumentsNoReferenciats() = {
       
@@ -454,23 +455,32 @@ object SecondHalf {
       val result = Await.result(futureResponse, timeout.duration)
       system.stop(master)
       
-      val result1map = result.asInstanceOf[Map[String,List[String]]] //Map[titol, list[titol dels documents que el referencien]]
-      val filterDocuments = result1map.filter(x => titles.contains(x._1)) //només ens quedem amb els titols dels maps 
+      /*
+      val input2 = for(elem <- filterDocuments.toList) yield {
+        val temp = elem
+        val title = temp._1
+        val refs = temp._2
+        (title, (refs, titles))
+      }
+      master = system.actorOf(Props(new MapReduceActor[String, (List[String], List[String]), String, String](input2, mapping2, reducing2, 2, 2)))
+      val futureResponse2 = master ? "start"
+      val result2 = Await.result(futureResponse, timeout.duration)
+      system.shutdown
       
-      //val retallat = filterDocuments.slice(0, 100)
-      //for(i <- retallat) println(i._1 + " -> " + i._2)
+      val result2map = result2.asInstanceOf[Map[String,List[String]]]*/
       
-      val result2senseMR = for(i <- filterDocuments.toList) yield (i._1,  titles.filterNot(x => i._2.contains(x) || x.equals(i._2)))
-      val result2mapNoMR = result2senseMR.toMap
+      val result1map = result.asInstanceOf[Map[String,List[String]]] //Map[title, list[title of the documents that refer to it]]
+      val filterDocuments = result1map.filter(x => titles.contains(x._1)) //we only keep the titles of the documents that we have
+      
+      val result2 = for(i <- filterDocuments.toList) yield (i._1,  titles.filterNot(x => i._2.contains(x) || x.equals(i._2)))
+      val result2map = result2.toMap
       val result2filled = for(title <- titles) yield {
-        if (result2mapNoMR.contains(title))
-          (title, result2mapNoMR(title))
+        if (result2map.contains(title))
+          (title, result2map(title))
         else
           (title, List())
       }
-      val result2mapNoMRfilled = result2filled.toMap
-      
-      //print(result2senseMR.take(10))
+      val result2mapfilled = result2filled.toMap
       
       val Llindar: Double = 0.2
       
@@ -479,25 +489,15 @@ object SecondHalf {
       val tf_idf2 = tf_idf.filter(x => x._2 > Llindar)
       
       val fileMap = tractaxmldoc.titolsNomfitxer(files).toMap
-      val tf_idf3 = tf_idf2.filter(x => result2mapNoMRfilled(fileMap(x._1._1)).contains(fileMap(x._1._2)) )
+      val tf_idf3 = tf_idf2.filter(x => result2mapfilled(fileMap(x._1._1)).contains(fileMap(x._1._2)) )
       
       println("10 primeres parelles de pagines similars que no es referencien una a l'altra")
       for(i <- tf_idf3.take(10)) println(i)
       
-      val input2 = for(elem <- filterDocuments.toList) yield {
-        val temp = elem
-        val title = temp._1
-        val refs = temp._2
-        (title, (refs, titles))
-      }
+      val tf_idf4 = tf_idf.filter(x => x._2 < Llindar)
+      val tf_idf5 = tf_idf2.filterNot(x => result2mapfilled(fileMap(x._1._1)).contains(fileMap(x._1._2)) )
+      for(i <- tf_idf5.take(10)) println(i)
       
-      master = system.actorOf(Props(new MapReduceActor[String, (List[String], List[String]), String, String](input2, mapping2, reducing2, 2, 2)))
-      val futureResponse2 = master ? "start"
-      val result2 = Await.result(futureResponse, timeout.duration)
-      system.shutdown
-      
-      val result2map = result2.asInstanceOf[Map[String,List[String]]]
-      //println(result2map.take(5))
     }
   }
 
@@ -521,13 +521,13 @@ object Main extends App {
    */
   override def main(args:Array[String]) =  {
     
-    FirstHalf.main()
+    //FirstHalf.main()
     
     println("\n")
     
     val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
     val files = Main.openFiles("wiki-xml-2ww5k", "", ".xml").take(100)
-    SecondHalf.MapReduceTfIdf.computeSimilarities(files.toList, stopwords, 10, 10, true)
+    //SecondHalf.MapReduceTfIdf.computeSimilarities(files.toList, stopwords, 10, 10, true)
     
     println("\n")
     
