@@ -290,9 +290,9 @@ object Main extends App {
     
     //FirstHalf.main()
     
-    MapReduce3.mapReduceDocumentsNoReferenciats()
+    //MapReduce3.mapReduceDocumentsNoReferenciats()
     
-    //MapReduceTfIdf.main1()
+    MapReduceTfIdf.main1()
     //tractaxmldoc.titolsIRefs()
   }
 }
@@ -335,14 +335,6 @@ object MapReduceTfIdf{
     word_count.map(x => (x._1, file_name))
   }
   
-  /*	Doesn't reduce. It's simply a pass thorught for the @p files parameter
-   * 	@param word String representing a word
-   * 	@param files List of files containing that word
-   */
-  def reducing2(word: String, files: List[String]): List[String] = {
-    files
-  }
-  
   /*	Given a file name, and a tuple containing the List of word counts and a Map with (at least) the idf of all words in that file
    * 	yields all the tuples (file name, (Word, tfidf)) for that list of word counts. This will let us compute the space model vector
    * 	of that file
@@ -354,14 +346,10 @@ object MapReduceTfIdf{
       yield ( (file_name, (term_freq._1, term_freq._2 * tf_idf_unfolded._2(term_freq._1))))
   }
   
-  /*	Doesn't reduce. It's simply a pass thorught for the @p tf_idf parameter
-   * 	@param word String representing a word
-   * 	@param files List of files containing that word
+  /*	Given two maps representing the frequency counts of the words of two files, it computes its cosine similarity
+   * 	@param m1 First document
+   * 	@param m2 Second document
    */
-  def reducing3(file_name: String, tf_idf: List[(String, Double)]) = {
-    tf_idf
-  }
-  
   def cosinesim2(m1: Map[String, Double], m2: Map[String, Double]): Double = {
     
     //aligning vectors
@@ -378,14 +366,22 @@ object MapReduceTfIdf{
     term / (FirstHalf.euclidean_norm(smv1_vec) * FirstHalf.euclidean_norm(smv2_vec))
   }
   
+  /*	Given a pair of file names, and its representing space model vectors, computes its cosine similarity
+   * 	@param files Pair of file names
+   * 	@param tf_idfs Pair of space model vectors
+   */
   def mapping4(files: (String, String), tf_idfs:(List[(String, Double)], List[(String, Double)]) ) = {
     val cosinesim = cosinesim2(tf_idfs._1.toMap, tf_idfs._2.toMap)
     
     List((files, cosinesim))
   }
   
-  def reducing4(files: (String, String), cosinesim: List[Double]) = {
-    cosinesim
+  /*	Doesn't reduce. It's simply a pass through for the @p second parameter
+   * 	@param first First parameter
+   * 	@param second Second parameter
+   */
+  def passThroughtReduce[A](first: Any, second: List[A]) = {
+    second
   }
   
   def main1() = {
@@ -411,12 +407,16 @@ object MapReduceTfIdf{
     val futureResponse1 = master ? "start"
     val tf = Await.result(futureResponse1, timeout.duration).asInstanceOf[Map[String, List[(String, Double)]]]
     
+    println("TFs calculats!")
+    
     system.stop(master)
     
-    master = system.actorOf(Props(new MapReduceActor[String, List[(String, Double)], String, String](tf.toList, mapping2, reducing2, nMappers, nReducers)))
+    master = system.actorOf(Props(new MapReduceActor[String, List[(String, Double)], String, String](tf.toList, mapping2, passThroughtReduce[String], nMappers, nReducers)))
     
     val futureResponse2 = master ? "start"
     val df = Await.result(futureResponse2, timeout.duration).asInstanceOf[Map[String, List[String]]]
+    
+    println("DFs calculats. Ara falten fer els IDFs")
     
     system.stop(master)
     
@@ -427,10 +427,12 @@ object MapReduceTfIdf{
     //input: List[File -> ( List[(Word, dtf)], List[(Word, idf)])]
     val tfIdfInput = tf.map({case (k,v) => (k, (v,idf))})
     
-    master = system.actorOf(Props(new MapReduceActor[String, (List[(String, Double)], Map[String, Double]), String, (String, Double)](tfIdfInput.toList, mapping3, reducing3, nMappers, nReducers)))
+    master = system.actorOf(Props(new MapReduceActor[String, (List[(String, Double)], Map[String, Double]), String, (String, Double)](tfIdfInput.toList, mapping3, passThroughtReduce[(String,Double)], nMappers, nReducers)))
     
     val futureResponse3 = master ? "start"
     val tf_idf = Await.result(futureResponse3, timeout.duration).asInstanceOf[Map[String, List[(String, Double)]]]
+    
+    println("TF_IDFs calculats! Comparem els fitxers!")
     
     system.stop(master)
     
@@ -439,7 +441,7 @@ object MapReduceTfIdf{
       ((pair.head._1, pair.drop(1).head._1), (pair.head._2, pair.drop(1).head._2))
     }
     
-    master = system.actorOf(Props(new MapReduceActor[(String, String), (List[(String, Double)], List[(String, Double)]), (String, String), Double](comparisonList.toList, mapping4, reducing4, nMappers, nReducers)))
+    master = system.actorOf(Props(new MapReduceActor[(String, String), (List[(String, Double)], List[(String, Double)]), (String, String), Double](comparisonList.toList, mapping4, passThroughtReduce[Double], nMappers, nReducers)))
     
     val futureResponse4 = master ? "start"
     val result = Await.result(futureResponse4, timeout.duration).asInstanceOf[Map[(String, String), List[Double]]]
