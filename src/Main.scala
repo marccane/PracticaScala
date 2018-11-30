@@ -243,7 +243,7 @@ object MapReduce3 {
       
       //val res1 = idf1(folder).asInstanceOf[Map[String,List[String]]]
       
-      val files = Main.openFiles("smallxml", "", ".xml").toList
+      val files = Main.openFiles("100xml", "", ".xml").toList
       val input = for(file <- files) yield tractaxmldoc.referencies(file)
       val titles = tractaxmldoc.titols(files)
       
@@ -257,15 +257,21 @@ object MapReduce3 {
       val result1map = result.asInstanceOf[Map[String,List[String]]]
       val filterDocuments = result1map.filter(x => titles.contains(x._1))
       
-      //val retallat = filterDocuments.slice(0, 100)
+      val retallat = filterDocuments.slice(0, 100)
       //for(i <- retallat) println(i._1 + " -> " + i._2)
       
-      val input2 = for(elem <- result1map.toList) yield {
+      val result2senseMR = for(i <- filterDocuments.toList) yield (i._1,  titles.filterNot(x => i._2.contains(x) || x.equals(i._2)))//|| x.equals(title)
+      print(result2senseMR.take(10))
+      
+      val input2 = for(elem <- filterDocuments.toList) yield {
         val temp = elem
         val title = temp._1
         val refs = temp._2
         (title, (refs, titles))
       }
+      
+      //print(titles)
+      //print(input2.take(10))
       
       system = ActorSystem("DocsNoReferenciats")
       master = system.actorOf(Props(new MapReduceActor[String, (List[String], List[String]), String, String](input2, mapping2, reducing2, 2, 2)))
@@ -273,7 +279,8 @@ object MapReduce3 {
       val result2 = Await.result(futureResponse, timeout.duration)
       system.shutdown
       
-      println(result2)
+      val result2map = result2.asInstanceOf[Map[String,List[String]]]
+      //println(result2map.take(5))
     }
 }
 
