@@ -16,16 +16,17 @@ object tractaxmldoc{
 	  // identifico refer�ncies
 	  val ref = new Regex("\\[\\[[^\\]]*\\]\\]") 
 	  println("La pagina es: " + titol)
-	  println("i el contingut: ")
-	  println(contingut)
+	  //println("i el contingut: ")
+	  //println(contingut)
 	  val refs=(ref findAllIn contingut).toList
 	  
 	  // elimino les que tenen :
 	  val kk = refs.filterNot(x=> x.contains(':')) //A kk queden totes les strings que compleixen el regex i no contenen ':'
 	  
+	  val links = refs.filter(x=> x.contains(':'))
 	  // caldr� eliminar-ne m�s?
 	  
-	  for (r<-refs) println(r)
+	  for (r <- kk) println(r)
 	  println(refs.length)
 	  println(kk.length)
 	}
