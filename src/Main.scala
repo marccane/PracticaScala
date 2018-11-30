@@ -72,6 +72,8 @@ object FirstHalf {
     
   }
   
+  
+  
   /*
    * This object contains the "fancy output" functions to evaluate the program results
    */
@@ -116,6 +118,8 @@ object FirstHalf {
       printf("La similitud cosinus entre %s i %s es de %10.10f\n", s1, s2, cosinesim)
     }
   }
+  
+  
   
   /*	Given two tuples @p x and @p y, evaluates to true if the second element of the y is smaller than the second element of x. On draw, it reverses
    * 	the criteria and evaluates to true if the first element of x is smaller thant the first element of y.
@@ -216,19 +220,179 @@ object FirstHalf {
     
 }
 
-
-object Main extends App {
-	
-  /*	Given a folder and two strings with the prefix and sufix of the files to be opened it returns an array of file handlers
-   * 	@param folder Name of the folder to search the files in
-   * 	@param startsWith Prefix of the files to be opened
-   * 	@param endsWith Sufix of the files to be opened
+object SecondHalf {
+    
+    /*
+   * 
    */
-  def openFiles(folder: String, startsWith: String, endsWith: String): Array[java.io.File] = {
-    var fileList = new java.io.File(folder).listFiles.filter(_.getName.startsWith(startsWith)).filter(_.getName.endsWith(endsWith))
-    fileList
+  object MapReduceTfIdf{
+
+    /*	First mapping function. Given a file name (not the path) and a tuple (File_path, List[stopwords]) 
+     * 	generates all the pairs (file name, (word, 1)). This will let us reduce the list to a list of ocurrences (frequency)
+     * 	@param file_name The file name
+     * 	@param file Tuple of (filePath, List[stopwords])
+     */
+    def mapping1(file_name: String, file: (String, List[String])): List[(String, (String, Double))] = {
+      val wordList = tractaxmldoc.readXMLFile(file._1).split(" +").toList.filterNot(file._2.contains(_))
+      
+      val x = (for(word <- wordList) yield (file_name, (word, 1.toDouble)))
+      x
+    }
+    
+    //key-> Filename, values-> list of (Word, count)
+    /* 	Given a file name and a list of tuples (Word, 1) (word occurrences) of that file, reduces the tuples with the same first value to a tuple (Word, n_ocurrences)
+     * 	@param key Name of the file
+     * 	@param values List of all occurrences of the words
+     */
+    def reducing1(key: String, values: List[(String, Double)]): List[(String, Double)] = {
+      val res = for( (word, count_list) <- values.groupBy(_._1).toList ) 
+        //For every pair of word and list of counts, add up its counts
+        yield (word, count_list.map( {case (_, count) => count } ).reduceLeft( _ + _))
+      
+      val max_freq = res.map(_._2).max
+      
+      res.sortWith(FirstHalf.moreFrequent).map(x => (x._1, x._2/max_freq))
+    }
+    
+    /*	Given a file name and its word counts, unfolds all its tuples to the reverse (Word, File) tuple. 
+     * 	This will let us count how many documents contain that word and compute the idf of that word.
+     * 	@param file_name Name of that file
+     * 	@param word_count List of word counts (Word, 1)
+     */
+    def mapping2(file_name: String, word_count: List[(String, Double)]): List[(String, String)] = {
+      word_count.map(x => (x._1, file_name))
+    }
+    
+    /*	Given a file name, and a tuple containing the List of word counts and a Map with (at least) the idf of all words in that file
+     * 	yields all the tuples (file name, (Word, tfidf)) for that list of word counts. This will let us compute the space model vector
+     * 	of that file
+     * 	@param file_name Name of the file
+     * 	@param tf_idf_unfolded Pair containing the frequency counts of that file and the idf of all the words in that document set
+     */
+    def mapping3(file_name: String, tf_idf_unfolded: (List[(String, Double)], Map[String, Double])): List[(String, (String,Double))] = {
+      for (term_freq <- tf_idf_unfolded._1) 
+        yield ( (file_name, (term_freq._1, term_freq._2 * tf_idf_unfolded._2(term_freq._1))))
+    }
+    
+    /*	Given two maps representing the frequency counts of the words of two files, it computes its cosine similarity
+     * 	@param m1 First document
+     * 	@param m2 Second document
+     */
+    def cosinesim2(m1: Map[String, Double], m2: Map[String, Double]): Double = {
+      
+      //aligning vectors
+      val smv1 = m2.map({ case (key, value) => (key, 0.0)}) ++ m1
+      val smv2 = m1.map({ case (key, value) => (key, 0.0)}) ++ m2
+      
+      //simplify vectors
+      val smv1_vec = smv1.values.map(x => x.asInstanceOf[Double])
+      val smv2_vec = smv2.values.map(x => x.asInstanceOf[Double])
+      
+      //compute cosinesim
+      val term = smv1_vec.zip(smv2_vec).map(x => x._1 * x._2).reduceLeft( _ + _ )
+      
+      term / (FirstHalf.euclidean_norm(smv1_vec) * FirstHalf.euclidean_norm(smv2_vec))
+    }
+    
+    /*	Given a pair of file names, and its representing space model vectors, computes its cosine similarity
+     * 	@param files Pair of file names
+     * 	@param tf_idfs Pair of space model vectors
+     */
+    def mapping4(files: (String, String), tf_idfs:(List[(String, Double)], List[(String, Double)]) ) = {
+      val cosinesim = cosinesim2(tf_idfs._1.toMap, tf_idfs._2.toMap)
+      
+      List((files, cosinesim))
+    }
+    
+    /*	Doesn't reduce. It's simply a pass through for the @p second parameter
+     * 	@param first First parameter
+     * 	@param second Second parameter
+     */
+    def passThroughtReduce[A](first: Any, second: List[A]) = {
+      second
+    }
+    
+    def main1() = {
+      
+      println("Calculs iniciats...")
+      val tstart = System.nanoTime
+      
+      val nFiles = 100 //For illustration purposes.
+      
+      val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
+      val files = Main.openFiles("wiki-xml-2ww5k", "", ".xml").take(nFiles)
+      implicit val timeout = Timeout(10 days)
+      
+      val nMappers = 10
+      val nReducers = 10
+      
+      val input = ( for( file <- files) yield (file.getName, (file.getAbsolutePath, stopwords)) ).toList
+  
+      val system = ActorSystem("TextAnalizer2")
+  
+      var master = system.actorOf(Props(new MapReduceActor[String, (String, List[String]), String, (String, Double)](input, mapping1, reducing1, nMappers, nReducers)))
+      
+      val futureResponse1 = master ? "start"
+      val tf = Await.result(futureResponse1, timeout.duration).asInstanceOf[Map[String, List[(String, Double)]]]
+      
+      println("TFs calculats!")
+      
+      system.stop(master)
+      
+      master = system.actorOf(Props(new MapReduceActor[String, List[(String, Double)], String, String](tf.toList, mapping2, passThroughtReduce[String], nMappers, nReducers)))
+      
+      val futureResponse2 = master ? "start"
+      val df = Await.result(futureResponse2, timeout.duration).asInstanceOf[Map[String, List[String]]]
+      
+      println("DFs calculats. Ara falten fer els IDFs")
+      
+      system.stop(master)
+      
+      //this line could be done with MapReduce, but the overhead caused by map and reduce actor initialization is not worth the time
+      val idf = df.map(x => (x._1, Math.log(tf.size/x._2.length)))
+      
+      
+      //input: List[File -> ( List[(Word, dtf)], List[(Word, idf)])]
+      val tfIdfInput = tf.map({case (k,v) => (k, (v,idf))})
+      
+      master = system.actorOf(Props(new MapReduceActor[String, (List[(String, Double)], Map[String, Double]), String, (String, Double)](tfIdfInput.toList, mapping3, passThroughtReduce[(String,Double)], nMappers, nReducers)))
+      
+      val futureResponse3 = master ? "start"
+      val tf_idf = Await.result(futureResponse3, timeout.duration).asInstanceOf[Map[String, List[(String, Double)]]]
+      
+      println("TF_IDFs calculats! Comparem els fitxers!")
+      
+      system.stop(master)
+      
+      //Map[(FileName, FileName) -> (List[(Word, tfidf)], List[(Word, tfidf)])
+      val comparisonList = for ( pair <- tf_idf.toSet.subsets(2) ) yield {
+        ((pair.head._1, pair.drop(1).head._1), (pair.head._2, pair.drop(1).head._2))
+      }
+      
+      master = system.actorOf(Props(new MapReduceActor[(String, String), (List[(String, Double)], List[(String, Double)]), (String, String), Double](comparisonList.toList, mapping4, passThroughtReduce[Double], nMappers, nReducers)))
+      
+      val futureResponse4 = master ? "start"
+      val result = Await.result(futureResponse4, timeout.duration).asInstanceOf[Map[(String, String), List[Double]]]
+      
+      val finalResult = result.map({case (k,v) => (k, v.apply(0))})
+      
+      val tend = System.nanoTime
+      
+      println("Resultats del calcul de similaritat entre documents: ")
+      
+      for(singleResult <- finalResult){
+        println("Els documents " + singleResult._1._1 + " i " + singleResult._1._2 + " tenen una similaritat del " + singleResult._2*100 + "%")
+      }
+      
+      println("Calculs finalitzats. Temps total: " + (tend-tstart)/Math.pow(10,9))
+      
+      system.shutdown
+    }
+    
   }
-	
+  
+  
+  
   object MapReduceRef {
   
     def mapping1(title: String, referencedDocs: List[String]): List[(String, String)] = {
@@ -289,176 +453,19 @@ object Main extends App {
     }
   }
 
-  object SecondHalf {
-    
-    /*
-     * 
-     */
-    object MapReduceTfIdf{
-  
-      /*	First mapping function. Given a file name (not the path) and a tuple (File_path, List[stopwords]) 
-       * 	generates all the pairs (file name, (word, 1)). This will let us reduce the list to a list of ocurrences (frequency)
-       * 	@param file_name The file name
-       * 	@param file Tuple of (filePath, List[stopwords])
-       */
-      def mapping1(file_name: String, file: (String, List[String])): List[(String, (String, Double))] = {
-        val wordList = tractaxmldoc.readXMLFile(file._1).split(" +").toList.filterNot(file._2.contains(_))
-        
-        val x = (for(word <- wordList) yield (file_name, (word, 1.toDouble)))
-        x
-      }
-      
-      //key-> Filename, values-> list of (Word, count)
-      /* 	Given a file name and a list of tuples (Word, 1) (word occurrences) of that file, reduces the tuples with the same first value to a tuple (Word, n_ocurrences)
-       * 	@param key Name of the file
-       * 	@param values List of all occurrences of the words
-       */
-      def reducing1(key: String, values: List[(String, Double)]): List[(String, Double)] = {
-        val res = for( (word, count_list) <- values.groupBy(_._1).toList ) 
-          //For every pair of word and list of counts, add up its counts
-          yield (word, count_list.map( {case (_, count) => count } ).reduceLeft( _ + _))
-        
-        val max_freq = res.map(_._2).max
-        
-        res.sortWith(FirstHalf.moreFrequent).map(x => (x._1, x._2/max_freq))
-      }
-      
-      /*	Given a file name and its word counts, unfolds all its tuples to the reverse (Word, File) tuple. 
-       * 	This will let us count how many documents contain that word and compute the idf of that word.
-       * 	@param file_name Name of that file
-       * 	@param word_count List of word counts (Word, 1)
-       */
-      def mapping2(file_name: String, word_count: List[(String, Double)]): List[(String, String)] = {
-        word_count.map(x => (x._1, file_name))
-      }
-      
-      /*	Given a file name, and a tuple containing the List of word counts and a Map with (at least) the idf of all words in that file
-       * 	yields all the tuples (file name, (Word, tfidf)) for that list of word counts. This will let us compute the space model vector
-       * 	of that file
-       * 	@param file_name Name of the file
-       * 	@param tf_idf_unfolded Pair containing the frequency counts of that file and the idf of all the words in that document set
-       */
-      def mapping3(file_name: String, tf_idf_unfolded: (List[(String, Double)], Map[String, Double])): List[(String, (String,Double))] = {
-        for (term_freq <- tf_idf_unfolded._1) 
-          yield ( (file_name, (term_freq._1, term_freq._2 * tf_idf_unfolded._2(term_freq._1))))
-      }
-      
-      /*	Given two maps representing the frequency counts of the words of two files, it computes its cosine similarity
-       * 	@param m1 First document
-       * 	@param m2 Second document
-       */
-      def cosinesim2(m1: Map[String, Double], m2: Map[String, Double]): Double = {
-        
-        //aligning vectors
-        val smv1 = m2.map({ case (key, value) => (key, 0.0)}) ++ m1
-        val smv2 = m1.map({ case (key, value) => (key, 0.0)}) ++ m2
-        
-        //simplify vectors
-        val smv1_vec = smv1.values.map(x => x.asInstanceOf[Double])
-        val smv2_vec = smv2.values.map(x => x.asInstanceOf[Double])
-        
-        //compute cosinesim
-        val term = smv1_vec.zip(smv2_vec).map(x => x._1 * x._2).reduceLeft( _ + _ )
-        
-        term / (FirstHalf.euclidean_norm(smv1_vec) * FirstHalf.euclidean_norm(smv2_vec))
-      }
-      
-      /*	Given a pair of file names, and its representing space model vectors, computes its cosine similarity
-       * 	@param files Pair of file names
-       * 	@param tf_idfs Pair of space model vectors
-       */
-      def mapping4(files: (String, String), tf_idfs:(List[(String, Double)], List[(String, Double)]) ) = {
-        val cosinesim = cosinesim2(tf_idfs._1.toMap, tf_idfs._2.toMap)
-        
-        List((files, cosinesim))
-      }
-      
-      /*	Doesn't reduce. It's simply a pass through for the @p second parameter
-       * 	@param first First parameter
-       * 	@param second Second parameter
-       */
-      def passThroughtReduce[A](first: Any, second: List[A]) = {
-        second
-      }
-      
-      def main1() = {
-        
-        println("Calculs iniciats...")
-        val tstart = System.nanoTime
-        
-        val nFiles = 100 //For illustration purposes.
-        
-        val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
-        val files = Main.openFiles("wiki-xml-2ww5k", "", ".xml").take(nFiles)
-        implicit val timeout = Timeout(10 days)
-        
-        val nMappers = 10
-        val nReducers = 10
-        
-        val input = ( for( file <- files) yield (file.getName, (file.getAbsolutePath, stopwords)) ).toList
-    
-        val system = ActorSystem("TextAnalizer2")
-    
-        var master = system.actorOf(Props(new MapReduceActor[String, (String, List[String]), String, (String, Double)](input, mapping1, reducing1, nMappers, nReducers)))
-        
-        val futureResponse1 = master ? "start"
-        val tf = Await.result(futureResponse1, timeout.duration).asInstanceOf[Map[String, List[(String, Double)]]]
-        
-        println("TFs calculats!")
-        
-        system.stop(master)
-        
-        master = system.actorOf(Props(new MapReduceActor[String, List[(String, Double)], String, String](tf.toList, mapping2, passThroughtReduce[String], nMappers, nReducers)))
-        
-        val futureResponse2 = master ? "start"
-        val df = Await.result(futureResponse2, timeout.duration).asInstanceOf[Map[String, List[String]]]
-        
-        println("DFs calculats. Ara falten fer els IDFs")
-        
-        system.stop(master)
-        
-        //this line could be done with MapReduce, but the overhead caused by map and reduce actor initialization is not worth the time
-        val idf = df.map(x => (x._1, Math.log(tf.size/x._2.length)))
-        
-        
-        //input: List[File -> ( List[(Word, dtf)], List[(Word, idf)])]
-        val tfIdfInput = tf.map({case (k,v) => (k, (v,idf))})
-        
-        master = system.actorOf(Props(new MapReduceActor[String, (List[(String, Double)], Map[String, Double]), String, (String, Double)](tfIdfInput.toList, mapping3, passThroughtReduce[(String,Double)], nMappers, nReducers)))
-        
-        val futureResponse3 = master ? "start"
-        val tf_idf = Await.result(futureResponse3, timeout.duration).asInstanceOf[Map[String, List[(String, Double)]]]
-        
-        println("TF_IDFs calculats! Comparem els fitxers!")
-        
-        system.stop(master)
-        
-        //Map[(FileName, FileName) -> (List[(Word, tfidf)], List[(Word, tfidf)])
-        val comparisonList = for ( pair <- tf_idf.toSet.subsets(2) ) yield {
-          ((pair.head._1, pair.drop(1).head._1), (pair.head._2, pair.drop(1).head._2))
-        }
-        
-        master = system.actorOf(Props(new MapReduceActor[(String, String), (List[(String, Double)], List[(String, Double)]), (String, String), Double](comparisonList.toList, mapping4, passThroughtReduce[Double], nMappers, nReducers)))
-        
-        val futureResponse4 = master ? "start"
-        val result = Await.result(futureResponse4, timeout.duration).asInstanceOf[Map[(String, String), List[Double]]]
-        
-        val finalResult = result.map({case (k,v) => (k, v.apply(0))})
-        
-        val tend = System.nanoTime
-        
-        println("Resultats del calcul de similaritat entre documents: ")
-        
-        for(singleResult <- finalResult){
-          println("Els documents " + singleResult._1._1 + " i " + singleResult._1._2 + " tenen una similaritat del " + singleResult._2*100 + "%")
-        }
-        
-        println("Calculs finalitzats. Temps total: " + (tend-tstart)/Math.pow(10,9))
-        
-        system.shutdown
-      }
-    }
-      
+}
+
+
+object Main extends App {
+	
+  /*	Given a folder and two strings with the prefix and sufix of the files to be opened it returns an array of file handlers
+   * 	@param folder Name of the folder to search the files in
+   * 	@param startsWith Prefix of the files to be opened
+   * 	@param endsWith Sufix of the files to be opened
+   */
+  def openFiles(folder: String, startsWith: String, endsWith: String): Array[java.io.File] = {
+    var fileList = new java.io.File(folder).listFiles.filter(_.getName.startsWith(startsWith)).filter(_.getName.endsWith(endsWith))
+    fileList
   }
   
   /*
@@ -470,7 +477,7 @@ object Main extends App {
     
     //SecondHalf.MapReduceTfIdf.main1()
     
-    MapReduceRef.mapReduceDocumentsNoReferenciats()
+    SecondHalf.MapReduceRef.mapReduceDocumentsNoReferenciats()
   }
 }
 
