@@ -214,133 +214,10 @@ object FirstHalf {
 }
 
 object Main extends App {
-  
-	def compareAll(folderName: String): Any = {
-    var fileList = new java.io.File(folderName).listFiles.filter(_.getName.endsWith(".xml"))
-    for( i <- 0 to fileList.length -1 ){
-      for( j <- i+1 to fileList.length -1 ){
-        println(fileList.apply(i).getName + " -> " + fileList.apply(j).getName )
-      }
-    }
-    
-    "No se que retornara"
-  }
 	
-  //Aquesta funcio es canviarà
   def openFiles(folder: String, startsWith: String, endsWith: String): Array[java.io.File] = {
     var fileList = new java.io.File(folder).listFiles.filter(_.getName.startsWith(startsWith)).filter(_.getName.endsWith(endsWith))
     fileList
-  }
-  
-
-  object MapReducer2 {
-        
-    /*def mappingTest3(filename: String, words: List[String]): List[(String, Int)] = {
-      for(word <- words) yield (word,1234)
-    }
-  
-    def reducingTest3(word: String, cosarara: List[Int]): List[Int] = {
-      List(cosarara.length)
-    }
-    
-    def loadfiles() = {
-      val files = openPgTxtFiles("test")
-      val input = for(file <- files) yield (file.getName, file)
-      
-      val system = ActorSystem("TextAnalizer2")
-      val master = system.actorOf(Props( new MapReduceActor[String, List[java.io.File], String, Int](input.toList, mappingTest2, reducingTest2, 2, 2)))
-      implicit val timeout = Timeout(10 days)
-      val futureResponse = master ? "start"
-      val result = Await.result(futureResponse, timeout.duration)
-      println(result)
-      
-      system.shutdown
-    }*/
-  
-    def start() = {
-      val folder = "smalltest"
-      
-      val res1 = idf1(folder).asInstanceOf[Map[String,List[String]]] //Map[paraula, List[paths absoluts al fitxer que la contenen]]
-      val res2 = idf2(res1).asInstanceOf[Map[String,List[Int]]] //Map[paraula, List[Ocurrències al conjunt de fitxers C]]
-      //for(i <- res2) println(i._1 + " -> " + i._2.apply(0)) //els valors van de 0 a nDocuments
-      
-      val nDocuments = openFiles(folder, "pg", ".txt").length.toDouble //Nombre de documents en el conjunt C
-      val idfList = for(i <- res2) yield (i._1, math.log10(nDocuments/i._2.apply(0))) //calculem idf per cada paraula que apareix en el conjunt de documents
-      //Segur que és el logaritme en base 10? Podria ser un map en comptes d'una list
-      
-      for(idf <- idfList) println(idf._1 + " -> " + idf._2)
-    }
-    
-    //--------------------- tf: Comptar num d'ocurrencies de cada paraula que su en UN document ---------------------
-    
-    def mappingCheapTf(filename: String, words: List[String]): List[(String, Int)] = {
-      for(word <- words) yield (word,1234)
-    }
-  
-    def reducingCheapTf(word: String, cosarara: List[Int]): List[Int] = {
-      List(cosarara.length)
-    }
-    
-    def CheapTf() = {
-      
-      val pg11 = FirstHalf.readFile("test/pg11.txt")   
-      val input = List(("pg11.txt", pg11.split(" +").toList))
-      
-      val system = ActorSystem("TextAnalizer2")
-      val master = system.actorOf(Props(new MapReduceActor[String, List[String], String, Int](input, mappingCheapTf, reducingCheapTf, 2, 2)))
-      implicit val timeout = Timeout(10 days)
-      val futureResponse = master ? "start"
-      val result = Await.result(futureResponse, timeout.duration)
-      system.shutdown
-      
-      println(result)
-    }
-    
-    //--------------------- df1 ---------------------
-    
-    def mappingIdf1(file: String, words: List[String]): List[(String, String)] = {
-      for(word <- words) yield (word, file)
-    }
-  
-    def reducingIdf1(word: String, files: List[String]): List[String] = {
-      files.distinct
-    }
-    
-    def idf1(folder: String) = {
-      val files = openFiles(folder, "pg", ".txt")
-      val input = for(file <- files) yield (file.getName, FirstHalf.readFile(file.getAbsolutePath).split(" +").toList)
-      
-      val system = ActorSystem("TextAnalizer2")
-      val master = system.actorOf(Props(new MapReduceActor[String, List[String], String, String](input.toList, mappingIdf1, reducingIdf1, 2, 2)))
-      implicit val timeout = Timeout(10 days)
-      val futureResponse = master ? "start"
-      val result = Await.result(futureResponse, timeout.duration)
-      system.shutdown
-      
-      result //Map[string,List[string]] (per cada paraula, llista fitxers que la contenen) -------> podria ser una string amb el nom del fitxer
-    }
-    
-    //--------------------- df2 ---------------------
-    
-    def mappingIdf2(word: String, files: List[String]): List[(String, Int)] = {
-      List((word, files.length))
-    }
-  
-    def reducingIdf2(word: String, files: List[Int]): List[Int] = {
-      files
-    }
-    
-    def idf2(lastResult: Map[String,List[String]]) = {
-
-      val system = ActorSystem("TextAnalizer2")
-      val master = system.actorOf(Props(new MapReduceActor[String, List[String], String, Int](lastResult.toList, mappingIdf2, reducingIdf2, 2, 2)))
-      implicit val timeout = Timeout(10 days)
-      val futureResponse = master ? "start"
-      val result = Await.result(futureResponse, timeout.duration)
-      system.shutdown
-      
-      result
-    }
   }
 	
 object MapReduce3 {
@@ -394,26 +271,17 @@ object MapReduce3 {
 }
 
   override def main(args:Array[String]) =  {
-    //println(tractaxmldoc.readXMLFile("wiki-xml-2ww5k/32509.xml"))
-    //tractaxmldoc.exempleMateu
-    //for(fitxer <- tractaxmldoc.openPgTxtFiles("test")) println(fitxer.getName)
     
     //FirstHalf.main()
-
-    //val t1 = System.nanoTime
-    //MapReducer2.start()
-    //println("Temps: " + (System.nanoTime-t1)/Math.pow(10,9))
     
-    //MapReduceEnric.main1()
-    //tractaxmldoc.titolsIRefs()
-    MapReduce3.mapReduceDocumentsNoReferenciats()
+    //MapReduce3.mapReduceDocumentsNoReferenciats()
     
-    //MapReduceEnric.main1()
+    MapReduceTfIdf.main1()
     //tractaxmldoc.titolsIRefs()
   }
 }
 
-object MapReduceEnric{
+object MapReduceTfIdf{
   
   def mapping1(file_name: String, file: (String, List[String])): List[(String, (String, Double))] = {
     val wordList = tractaxmldoc.readXMLFile(file._1).split(" +").toList.filterNot(file._2.contains(_))
@@ -549,8 +417,5 @@ object MapReduceEnric{
     println("Calculs finalitzats. Temps total: " + (tend-tstart)/Math.pow(10,9))
     
     system.shutdown
-    
-    println(df)
-    
   }
 }
