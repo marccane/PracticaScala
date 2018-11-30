@@ -232,7 +232,7 @@ object MapReduce3 {
     
     def mapping2(title: String, tuple: (List[String],List[String])): List[(String, String)] = {
       val allTitles = tuple._2
-      for(titleRef <- tuple._1) yield (title, ) //allTitles.filterNot(x=>titlesRef.contains(x) || x.equals(title))
+      for(titleRef <- allTitles; if(!tuple._1.contains(titleRef))) yield (title, titleRef) //allTitles.filterNot(x=>titlesRef.contains(x) || x.equals(title))
     }
   
     def reducing2(title: String, docsRefer: List[String]): List[String] = {
@@ -263,10 +263,12 @@ object MapReduce3 {
       val input2 = for(file <- files) yield tractaxmldoc.referencies(file)
       
       system = ActorSystem("DocsReferenciats")
-      master = system.actorOf(Props(new MapReduceActor[String, List[String], String, String](input, mapping1, reducing1, 2, 2)))
+      master = system.actorOf(Props(new MapReduceActor[String, (List[String], List[String]), String, String](input2, mapping2, reducing2, 2, 2)))
       val futureResponse2 = master ? "start"
       val result2 = Await.result(futureResponse, timeout.duration)
       system.stop(master)
+      
+      println(result2)
     }
 }
 
