@@ -222,8 +222,7 @@ object FirstHalf {
 
 object SecondHalf {
     
-    /*
-   * 
+  /*	This object contains all the code that is used to compute similarities between all elements in a list of files using MapReduce pattern
    */
   object MapReduceTfIdf{
 
@@ -312,6 +311,14 @@ object SecondHalf {
       second
     }
     
+    /*	Given a list of files, the list of stopwords and the number of mappers and reducers desired computes the cosine similarirty between 
+     * 	all possible pair of files excluding the stopwords using the MapReduce pattern.
+     * 	@param files List of files to be compared
+     * 	@param stopwords List of words to be filtered before comparing
+     * 	@param nMappers Number of mapping actors
+     * 	@param nReducers Number of reducing actors
+     * 	@param verbose Optional parameter, the method will explain you what is doing at each step of its computing spree.
+     */
     def computeSimilarities(files: List[java.io.File], stopwords: List[String], nMappers: Int, nReducers: Int, verbose: Boolean = true) = {
       
       if (verbose) println("Calculs iniciats...")
@@ -319,58 +326,83 @@ object SecondHalf {
       
       implicit val timeout = Timeout(10 days)
       
+      //// 1/4 Counting Words ////
+      
+      //From files, generate a list of pairs (file name, (file path, stopwords))
       val input = ( for( file <- files) yield (file.getName, (file.getAbsolutePath, stopwords)) ).toList
   
+      //initializing actor system
       val system = ActorSystem("TextAnalizer2")
   
+      //master actor to control MapReduce
       var master = system.actorOf(Props(new MapReduceActor[String, (String, List[String]), String, (String, Double)](input, mapping1, reducing1, nMappers, nReducers)))
       
       val futureResponse1 = master ? "start"
+      //waiting for master's response
       val tf = Await.result(futureResponse1, timeout.duration).asInstanceOf[Map[String, List[(String, Double)]]]
       
       if (verbose) println("TFs calculats!")
       
+      //stoping old master
       system.stop(master)
       
+      //// 2/4 Computing DF ////
+      
+      //creating new master
       master = system.actorOf(Props(new MapReduceActor[String, List[(String, Double)], String, String](tf.toList, mapping2, passThroughtReduce[String], nMappers, nReducers)))
       
       val futureResponse2 = master ? "start"
+      //waiting for master's response
       val df = Await.result(futureResponse2, timeout.duration).asInstanceOf[Map[String, List[String]]]
       
       if (verbose) println("DFs calculats. Ara falten fer els IDFs")
       
+      //stoping old master
       system.stop(master)
       
+      //// 3/4 Computing TF_IDF ////
+      
+      //Computing the idf of every word
       //this line could be done with MapReduce, but the overhead caused by map and reduce actor initialization is not worth the time
       val idf = df.map(x => (x._1, Math.log(tf.size/x._2.length)))
       
-      
+      //preparing input: adding the idf to all input values
       //input: List[File -> ( List[(Word, dtf)], List[(Word, idf)])]
       val tfIdfInput = tf.map({case (k,v) => (k, (v,idf))})
       
+      //creating new master
       master = system.actorOf(Props(new MapReduceActor[String, (List[(String, Double)], Map[String, Double]), String, (String, Double)](tfIdfInput.toList, mapping3, passThroughtReduce[(String,Double)], nMappers, nReducers)))
       
       val futureResponse3 = master ? "start"
+      //waiting for master's response
       val tf_idf = Await.result(futureResponse3, timeout.duration).asInstanceOf[Map[String, List[(String, Double)]]]
       
       if (verbose) println("TF_IDFs calculats! Comparem els fitxers!")
       
+      //stoping old master
       system.stop(master)
       
+      //// 4/4 Comparing all files ////
+      
+      //Preparing input: Creating all paris of files to be compared, with its space model vectors included
       //Map[(FileName, FileName) -> (List[(Word, tfidf)], List[(Word, tfidf)])
       val comparisonList = for ( pair <- tf_idf.toSet.subsets(2) ) yield {
         ((pair.head._1, pair.drop(1).head._1), (pair.head._2, pair.drop(1).head._2))
       }
       
+      //creating new master
       master = system.actorOf(Props(new MapReduceActor[(String, String), (List[(String, Double)], List[(String, Double)]), (String, String), Double](comparisonList.toList, mapping4, passThroughtReduce[Double], nMappers, nReducers)))
       
       val futureResponse4 = master ? "start"
+      //waiting for master's response
       val result = Await.result(futureResponse4, timeout.duration).asInstanceOf[Map[(String, String), List[Double]]]
       
+      //final product: Map[(Filename, Filename), cosinesim]
       val finalResult = result.map({case (k,v) => (k, v.apply(0))})
       
       val tend = System.nanoTime
       
+      //printing the results
       if (verbose){ 
         println("Resultats del calcul de similaritat entre documents: ")
         
@@ -381,6 +413,7 @@ object SecondHalf {
         println("Calculs finalitzats. Temps total: " + (tend-tstart)/Math.pow(10,9))
       }
       
+      //Shutdown actor system
       system.shutdown
       
       finalResult
@@ -472,9 +505,12 @@ object Main extends App {
     
     //FirstHalf.main()
     
-    //SecondHalf.MapReduceTfIdf.main1()
+    //val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
+    //val files = Main.openFiles("wiki-xml-2ww5k", "", ".xml").take(100)
     
-    SecondHalf.MapReduceRef.mapReduceDocumentsNoReferenciats()
+    //println(SecondHalf.MapReduceTfIdf.computeSimilarities(files.toList, stopwords, 10, 10, false))
+    
+    //SecondHalf.MapReduceRef.mapReduceDocumentsNoReferenciats()
   }
 }
 
