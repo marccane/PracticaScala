@@ -371,6 +371,56 @@ object MapReducer2 {
     }
   }
 	
+object MapReduce3 {
+  
+    def mapping1(title: String, referencedDocs: List[String]): List[(String, String)] = {
+      for( doc <- referencedDocs) yield (doc, title) //document, document que fa referencia al primer
+    }
+  
+    def reducing1(title: String, docsRefer: List[String]): List[String] = {
+      docsRefer.distinct
+    }
+    
+    def mapping2(title: String, tuple: (List[String],List[String])): List[(String, String)] = {
+      val allTitles = tuple._2
+      for(titleRef <- tuple._1) yield (title, ) //allTitles.filterNot(x=>titlesRef.contains(x) || x.equals(title))
+    }
+  
+    def reducing2(title: String, docsRefer: List[String]): List[String] = {
+      docsRefer
+    }
+    
+    def mapReduceDocumentsNoReferenciats() = {
+      
+      //val res1 = idf1(folder).asInstanceOf[Map[String,List[String]]]
+      
+      val files = Main.openFiles("100xml", "", ".xml").toList
+      val input = for(file <- files) yield tractaxmldoc.referencies(file)
+      val titles = tractaxmldoc.titols(files)
+      
+      var system = ActorSystem("DocsReferenciats")
+      var master = system.actorOf(Props(new MapReduceActor[String, List[String], String, String](input, mapping1, reducing1, 2, 2)))
+      implicit val timeout = Timeout(10 days)
+      val futureResponse = master ? "start"
+      val result = Await.result(futureResponse, timeout.duration)
+      system.stop(master)
+      
+      val result1map = result.asInstanceOf[Map[String,List[String]]]
+      val filterDocuments = result1map.filter(x => titles.contains(x._1))
+      
+      //val retallat = filterDocuments.slice(0, 100)
+      //for(i <- retallat) println(i._1 + " -> " + i._2)
+      
+      val input2 = for(file <- files) yield tractaxmldoc.referencies(file)
+      
+      system = ActorSystem("DocsReferenciats")
+      master = system.actorOf(Props(new MapReduceActor[String, List[String], String, String](input, mapping1, reducing1, 2, 2)))
+      val futureResponse2 = master ? "start"
+      val result2 = Await.result(futureResponse, timeout.duration)
+      system.stop(master)
+    }
+}
+
   override def main(args:Array[String]) =  {
     //println(tractaxmldoc.readXMLFile("wiki-xml-2ww5k/32509.xml"))
     //tractaxmldoc.exempleMateu
@@ -381,11 +431,10 @@ object MapReducer2 {
     //val t1 = System.nanoTime
     //MapReducer2.start()
     //println("Temps: " + (System.nanoTime-t1)/Math.pow(10,9))
-
-    //MapReducer2.start()
     
     //MapReduceEnric.main1()
-    tractaxmldoc.titolsIRefs()
+    //tractaxmldoc.titolsIRefs()
+    MapReduce3.mapReduceDocumentsNoReferenciats()
   }
 }
 
@@ -455,6 +504,8 @@ object MapReduceEnric{
     system.shutdown
     
     println("Calculs finalitzats. Temps total: " + (System.nanoTime-t1)/Math.pow(10,9))
+    
+    println(df)
     
   }
 }
