@@ -494,8 +494,12 @@ object SecondHalf {
       println("10 primeres parelles de pagines similars que no es referencien una a l'altra")
       for(i <- tf_idf3.take(10)) println(i)
       
+      
       val tf_idf4 = tf_idf.filter(x => x._2 < Llindar)
-      val tf_idf5 = tf_idf2.filterNot(x => result2mapfilled(fileMap(x._1._1)).contains(fileMap(x._1._2)) )
+      val tf_idf5 = tf_idf4.filterNot(x => result2mapfilled(fileMap(x._1._1)).contains(fileMap(x._1._2)) )
+      
+      println()
+      println("10 primeres parelles de pagines similars que no es referencien")
       for(i <- tf_idf5.take(10)) println(i)
       
     }
