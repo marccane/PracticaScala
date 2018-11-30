@@ -465,7 +465,6 @@ object SecondHalf {
       master = system.actorOf(Props(new MapReduceActor[String, (List[String], List[String]), String, String](input2, mapping2, reducing2, 2, 2)))
       val futureResponse2 = master ? "start"
       val result2 = Await.result(futureResponse, timeout.duration)
-      system.shutdown
       
       val result2map = result2.asInstanceOf[Map[String,List[String]]]*/
       
@@ -502,6 +501,7 @@ object SecondHalf {
       println("10 primeres parelles de pagines similars que no es referencien")
       for(i <- tf_idf5.take(10)) println(i)
       
+      system.shutdown
     }
   }
 
@@ -525,13 +525,13 @@ object Main extends App {
    */
   override def main(args:Array[String]) =  {
     
-    //FirstHalf.main()
+    FirstHalf.main()
     
     println("\n")
     
     val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
     val files = Main.openFiles("wiki-xml-2ww5k", "", ".xml").take(100)
-    //SecondHalf.MapReduceTfIdf.computeSimilarities(files.toList, stopwords, 10, 10, true)
+    SecondHalf.MapReduceTfIdf.computeSimilarities(files.toList, stopwords, 10, 10, true)
     
     println("\n")
     
