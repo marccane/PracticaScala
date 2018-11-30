@@ -312,19 +312,12 @@ object SecondHalf {
       second
     }
     
-    def main1() = {
+    def computeSimilarities(files: List[java.io.File], stopwords: List[String], nMappers: Int, nReducers: Int, verbose: Boolean = true) = {
       
-      println("Calculs iniciats...")
+      if (verbose) println("Calculs iniciats...")
       val tstart = System.nanoTime
       
-      val nFiles = 100 //For illustration purposes.
-      
-      val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
-      val files = Main.openFiles("wiki-xml-2ww5k", "", ".xml").take(nFiles)
       implicit val timeout = Timeout(10 days)
-      
-      val nMappers = 10
-      val nReducers = 10
       
       val input = ( for( file <- files) yield (file.getName, (file.getAbsolutePath, stopwords)) ).toList
   
@@ -335,7 +328,7 @@ object SecondHalf {
       val futureResponse1 = master ? "start"
       val tf = Await.result(futureResponse1, timeout.duration).asInstanceOf[Map[String, List[(String, Double)]]]
       
-      println("TFs calculats!")
+      if (verbose) println("TFs calculats!")
       
       system.stop(master)
       
@@ -344,7 +337,7 @@ object SecondHalf {
       val futureResponse2 = master ? "start"
       val df = Await.result(futureResponse2, timeout.duration).asInstanceOf[Map[String, List[String]]]
       
-      println("DFs calculats. Ara falten fer els IDFs")
+      if (verbose) println("DFs calculats. Ara falten fer els IDFs")
       
       system.stop(master)
       
@@ -360,7 +353,7 @@ object SecondHalf {
       val futureResponse3 = master ? "start"
       val tf_idf = Await.result(futureResponse3, timeout.duration).asInstanceOf[Map[String, List[(String, Double)]]]
       
-      println("TF_IDFs calculats! Comparem els fitxers!")
+      if (verbose) println("TF_IDFs calculats! Comparem els fitxers!")
       
       system.stop(master)
       
@@ -378,16 +371,19 @@ object SecondHalf {
       
       val tend = System.nanoTime
       
-      println("Resultats del calcul de similaritat entre documents: ")
-      
-      for(singleResult <- finalResult){
-        println("Els documents " + singleResult._1._1 + " i " + singleResult._1._2 + " tenen una similaritat del " + singleResult._2*100 + "%")
+      if (verbose){ 
+        println("Resultats del calcul de similaritat entre documents: ")
+        
+        for(singleResult <- finalResult){
+          println("Els documents " + singleResult._1._1 + " i " + singleResult._1._2 + " tenen una similaritat del " + singleResult._2*100 + "%")
+        }
+        
+        println("Calculs finalitzats. Temps total: " + (tend-tstart)/Math.pow(10,9))
       }
       
-      println("Calculs finalitzats. Temps total: " + (tend-tstart)/Math.pow(10,9))
-      
       system.shutdown
-      result
+      
+      finalResult
     }
     
   }
@@ -434,14 +430,14 @@ object SecondHalf {
       val result2senseMR = for(i <- filterDocuments.toList) yield (i._1,  titles.filterNot(x => i._2.contains(x) || x.equals(i._2)))
       //print(result2senseMR.take(10))
       
-      val Llindar: Double = 0.8
+      val Llindar: Double = 0.2
       
-      val tf_idf = MapReduceTfIdf.main1()
-      val tf_idf2 = for(idf <- tf_idf) yield (idf._1, idf._2.apply(0))
-      val tf_idf3 = tf_idf2.filter(x => x._2 > Llindar)
+      val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
+      val tf_idf = MapReduceTfIdf.computeSimilarities(files, stopwords, 10, 10)
+      val tf_idf2 = tf_idf.filter(x => x._2 > Llindar)
       //val tf_idf4 = 
       
-      print( tf_idf3.take(10))
+      print(tf_idf2.take(10))
       
       val input2 = for(elem <- filterDocuments.toList) yield {
         val temp = elem
