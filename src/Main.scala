@@ -422,9 +422,9 @@ object SecondHalf {
       system.stop(master)
       
       val result1map = result.asInstanceOf[Map[String,List[String]]]
-      for(i<-result1map) println(i._1)
+      //for(i<-result1map) println(i._1)
       val filterDocuments = result1map.filter(x => titles.contains(x._1))
-      print("canvi")
+      //print("canvi")
       for(i<-filterDocuments) println(i._1)
       
       //val retallat = filterDocuments.slice(0, 100)
@@ -432,6 +432,14 @@ object SecondHalf {
       
       val result2senseMR = for(i <- filterDocuments.toList) yield (i._1,  titles.filterNot(x => i._2.contains(x) || x.equals(i._2)))
       val result2mapNoMR = result2senseMR.toMap
+      val result2senseMRtemp = for(title <- titles) yield {
+        if (result2mapNoMR.contains(title))
+          (title, result2mapNoMR(title))
+        else
+          (title, List())
+      }
+      val result2mapNoMRfilled = result2senseMRtemp.toMap
+      
       //print(result2senseMR.take(10))
       
       val Llindar: Double = 0.2
@@ -443,9 +451,9 @@ object SecondHalf {
       val fileMap = tractaxmldoc.titolsNomfitxer(files).toMap
       //println(fileMap)
       for(i<-result2mapNoMR) println(i._1)
-      println(tf_idf2.size)
-      val tf_idf3 = tf_idf2.filter(x => result2mapNoMR(fileMap(x._1._1)).contains(fileMap(x._1._2)) )
-      print(tf_idf3.size)
+      //println(tf_idf2.size)
+      val tf_idf3 = tf_idf2.filter(x => result2mapNoMRfilled(fileMap(x._1._1)).contains(fileMap(x._1._2)) )
+      //print(tf_idf3.size)
       
       print(tf_idf3.take(10))
       
