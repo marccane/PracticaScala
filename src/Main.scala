@@ -243,7 +243,7 @@ object MapReduce3 {
       
       //val res1 = idf1(folder).asInstanceOf[Map[String,List[String]]]
       
-      val files = Main.openFiles("100xml", "", ".xml").toList
+      val files = Main.openFiles("smallxml", "", ".xml").toList
       val input = for(file <- files) yield tractaxmldoc.referencies(file)
       val titles = tractaxmldoc.titols(files)
       
@@ -260,18 +260,18 @@ object MapReduce3 {
       //val retallat = filterDocuments.slice(0, 100)
       //for(i <- retallat) println(i._1 + " -> " + i._2)
       
-      val input2 = for(file <- files) yield {
-        val temp = tractaxmldoc.referencies(file)
+      val input2 = for(elem <- result1map.toList) yield {
+        val temp = elem
         val title = temp._1
         val refs = temp._2
         (title, (refs, titles))
       }
       
-      system = ActorSystem("DocsReferenciats")
+      system = ActorSystem("DocsNoReferenciats")
       master = system.actorOf(Props(new MapReduceActor[String, (List[String], List[String]), String, String](input2, mapping2, reducing2, 2, 2)))
       val futureResponse2 = master ? "start"
       val result2 = Await.result(futureResponse, timeout.duration)
-      system.stop(master)
+      system.shutdown
       
       println(result2)
     }
