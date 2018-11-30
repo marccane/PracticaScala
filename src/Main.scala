@@ -216,14 +216,20 @@ object FirstHalf {
     
 }
 
+
 object Main extends App {
 	
+  /*	Given a folder and two strings with the prefix and sufix of the files to be opened it returns an array of file handlers
+   * 	@param folder Name of the folder to search the files in
+   * 	@param startsWith Prefix of the files to be opened
+   * 	@param endsWith Sufix of the files to be opened
+   */
   def openFiles(folder: String, startsWith: String, endsWith: String): Array[java.io.File] = {
     var fileList = new java.io.File(folder).listFiles.filter(_.getName.startsWith(startsWith)).filter(_.getName.endsWith(endsWith))
     fileList
   }
 	
-  object MapReduce3 {
+  object MapReduceRef {
   
     def mapping1(title: String, referencedDocs: List[String]): List[(String, String)] = {
       for( doc <- referencedDocs) yield (doc, title) //document, document que fa referencia al primer
@@ -243,8 +249,6 @@ object Main extends App {
     }
     
     def mapReduceDocumentsNoReferenciats() = {
-      
-      //val res1 = idf1(folder).asInstanceOf[Map[String,List[String]]]
       
       val files = Main.openFiles("100xml", "", ".xml").toList
       val input = for(file <- files) yield tractaxmldoc.referencies(file)
@@ -273,7 +277,6 @@ object Main extends App {
         (title, (refs, titles))
       }
       
-      //print(titles)
       //print(input2.take(10))
       
       master = system.actorOf(Props(new MapReduceActor[String, (List[String], List[String]), String, String](input2, mapping2, reducing2, 2, 2)))
@@ -290,10 +293,9 @@ object Main extends App {
     
     //FirstHalf.main()
     
-    MapReduce3.mapReduceDocumentsNoReferenciats()
-    
     //MapReduceTfIdf.main1()
-    //tractaxmldoc.titolsIRefs()
+    
+    MapReduceRef.mapReduceDocumentsNoReferenciats()
   }
 }
 
