@@ -276,7 +276,6 @@ object Main extends App {
       //print(titles)
       //print(input2.take(10))
       
-      system = ActorSystem("DocsNoReferenciats")
       master = system.actorOf(Props(new MapReduceActor[String, (List[String], List[String]), String, String](input2, mapping2, reducing2, 2, 2)))
       val futureResponse2 = master ? "start"
       val result2 = Await.result(futureResponse, timeout.duration)
