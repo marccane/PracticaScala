@@ -250,7 +250,7 @@ object Main extends App {
       val input = for(file <- files) yield tractaxmldoc.referencies(file)
       val titles = tractaxmldoc.titols(files)
       
-      var system = ActorSystem("DocsReferenciats")
+      val system = ActorSystem("DocsReferenciats")
       var master = system.actorOf(Props(new MapReduceActor[String, List[String], String, String](input, mapping1, reducing1, 2, 2)))
       implicit val timeout = Timeout(10 days)
       val futureResponse = master ? "start"
@@ -270,13 +270,15 @@ object Main extends App {
         (title, (refs, titles))
       }
       
-      system = ActorSystem("DocsReferenciats")
+      println(input2)
+      
       master = system.actorOf(Props(new MapReduceActor[String, (List[String], List[String]), String, String](input2, mapping2, reducing2, 2, 2)))
       val futureResponse2 = master ? "start"
       val result2 = Await.result(futureResponse, timeout.duration)
-      system.stop(master)
       
-      println(result2)
+      system.shutdown
+      
+      //println(result2)
     }
   }
 
@@ -296,7 +298,7 @@ object MapReduceTfIdf{
   /*	First mapping function. Given a file name (not the path) and a tuple (File_path, List[stopwords]) 
    * 	generates all the pairs (file name, (word, 1)). This will let us reduce the list to a list of ocurrences (frequency)
    * 	@param file_name The file name
-   * 	@param 
+   * 	@param file Tuple of (filePath, List[stopwords])
    */
   def mapping1(file_name: String, file: (String, List[String])): List[(String, (String, Double))] = {
     val wordList = tractaxmldoc.readXMLFile(file._1).split(" +").toList.filterNot(file._2.contains(_))
@@ -306,6 +308,10 @@ object MapReduceTfIdf{
   }
   
   //key-> Filename, values-> list of (Word, count)
+  /* 	Given a file name and a list of tuples (Word, 1) (word occurrences) of that file, reduces the tuples with the same first value to a tuple (Word, n_ocurrences)
+   * 	@param key Name of the file
+   * 	@param values List of all occurrences of the words
+   */
   def reducing1(key: String, values: List[(String, Double)]): List[(String, Double)] = {
     val res = for( (word, count_list) <- values.groupBy(_._1).toList ) 
       //For every pair of word and list of counts, add up its counts
@@ -316,23 +322,38 @@ object MapReduceTfIdf{
     res.sortWith(FirstHalf.moreFrequent).map(x => (x._1, x._2/max_freq))
   }
   
-  
+  /*	Given a file name and its word counts, unfolds all its tuples to the reverse (Word, File) tuple. 
+   * 	This will let us count how many documents contain that word and compute the idf of that word.
+   * 	@param file_name Name of that file
+   * 	@param word_count List of word counts (Word, 1)
+   */
   def mapping2(file_name: String, word_count: List[(String, Double)]): List[(String, String)] = {
     word_count.map(x => (x._1, file_name))
   }
   
+  /*	Doesn't reduce. It's simply a pass thorught for the @p files parameter
+   * 	@param word String representing a word
+   * 	@param files List of files containing that word
+   */
   def reducing2(word: String, files: List[String]): List[String] = {
     files
   }
   
-  /*
-   * 
+  /*	Given a file name, and a tuple containing the List of word counts and a Map with (at least) the idf of all words in that file
+   * 	yields all the tuples (file name, (Word, tfidf)) for that list of word counts. This will let us compute the space model vector
+   * 	of that file
+   * 	@param file_name Name of the file
+   * 	@param tf_idf_unfolded Pair containing the frequency counts of that file and the idf of all the words in that document set
    */
   def mapping3(file_name: String, tf_idf_unfolded: (List[(String, Double)], Map[String, Double])): List[(String, (String,Double))] = {
     for (term_freq <- tf_idf_unfolded._1) 
       yield ( (file_name, (term_freq._1, term_freq._2 * tf_idf_unfolded._2(term_freq._1))))
   }
   
+  /*	Doesn't reduce. It's simply a pass thorught for the @p tf_idf parameter
+   * 	@param word String representing a word
+   * 	@param files List of files containing that word
+   */
   def reducing3(file_name: String, tf_idf: List[(String, Double)]) = {
     tf_idf
   }
