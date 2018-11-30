@@ -523,11 +523,11 @@ object Main extends App {
     
     //FirstHalf.main()
     
-    //val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
-    //val files = Main.openFiles("wiki-xml-2ww5k", "", ".xml").take(100)
+    /*val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
+    val files = Main.openFiles("wiki-xml-2ww5k", "", ".xml").take(100)
     
-    //println(SecondHalf.MapReduceTfIdf.computeSimilarities(files.toList, stopwords, 10, 10, false))
-    
+    println(SecondHalf.MapReduceTfIdf.computeSimilarities(files.toList, stopwords, 10, 10, false))
+    */
     //SecondHalf.MapReduceRef.mapReduceDocumentsNoReferenciats()
   }
 }
