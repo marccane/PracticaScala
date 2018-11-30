@@ -443,7 +443,7 @@ object SecondHalf {
     
     def mapReduceDocumentsNoReferenciats() = {
       
-      val files = Main.openFiles("100xml", "", ".xml").toList
+      val files = Main.openFiles("wiki-xml-2ww5k", "", ".xml").toList.take(100)
       val input = for(file <- files) yield tractaxmldoc.referencies(file)
       val titles = tractaxmldoc.titols(files)
       
