@@ -263,7 +263,12 @@ object Main extends App {
       //val retallat = filterDocuments.slice(0, 100)
       //for(i <- retallat) println(i._1 + " -> " + i._2)
       
-      val input2 = for(file <- files) yield tractaxmldoc.referencies(file)
+      val input2 = for(file <- files) yield {
+        val temp = tractaxmldoc.referencies(file)
+        val title = temp._1
+        val refs = temp._2
+        (title, (refs, titles))
+      }
       
       system = ActorSystem("DocsReferenciats")
       master = system.actorOf(Props(new MapReduceActor[String, (List[String], List[String]), String, String](input2, mapping2, reducing2, 2, 2)))
@@ -279,9 +284,9 @@ object Main extends App {
     
     //FirstHalf.main()
     
-    //MapReduce3.mapReduceDocumentsNoReferenciats()
+    MapReduce3.mapReduceDocumentsNoReferenciats()
     
-    MapReduceTfIdf.main1()
+    //MapReduceTfIdf.main1()
     //tractaxmldoc.titolsIRefs()
   }
 }
