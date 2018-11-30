@@ -387,10 +387,10 @@ object SecondHalf {
       println("Calculs finalitzats. Temps total: " + (tend-tstart)/Math.pow(10,9))
       
       system.shutdown
+      result
     }
     
   }
-  
   
   
   object MapReduceRef {
@@ -405,7 +405,7 @@ object SecondHalf {
     
     def mapping2(title: String, tuple: (List[String],List[String])): List[(String, String)] = {
       val allTitles = tuple._2
-      for(titleRef <- allTitles; if(!tuple._1.contains(titleRef))) yield (title, titleRef) //allTitles.filterNot(x=>titlesRef.contains(x) || x.equals(title))
+      for(titleRef <- allTitles; if(!tuple._1.contains(titleRef))) yield (title, titleRef)
     }
   
     def reducing2(title: String, docsRefer: List[String]): List[String] = {
@@ -428,11 +428,20 @@ object SecondHalf {
       val result1map = result.asInstanceOf[Map[String,List[String]]]
       val filterDocuments = result1map.filter(x => titles.contains(x._1))
       
-      val retallat = filterDocuments.slice(0, 100)
+      //val retallat = filterDocuments.slice(0, 100)
       //for(i <- retallat) println(i._1 + " -> " + i._2)
       
-      val result2senseMR = for(i <- filterDocuments.toList) yield (i._1,  titles.filterNot(x => i._2.contains(x) || x.equals(i._2)))//|| x.equals(title)
-      print(result2senseMR.take(10))
+      val result2senseMR = for(i <- filterDocuments.toList) yield (i._1,  titles.filterNot(x => i._2.contains(x) || x.equals(i._2)))
+      //print(result2senseMR.take(10))
+      
+      val Llindar: Double = 0.8
+      
+      val tf_idf = MapReduceTfIdf.main1()
+      val tf_idf2 = for(idf <- tf_idf) yield (idf._1, idf._2.apply(0))
+      val tf_idf3 = tf_idf2.filter(x => x._2 > Llindar)
+      //val tf_idf4 = 
+      
+      print( tf_idf3.take(10))
       
       val input2 = for(elem <- filterDocuments.toList) yield {
         val temp = elem
