@@ -52,6 +52,8 @@ object FirstHalf {
     println(s"Similitud cosinus entre totes les permutacions dels fitxers: \n''${fileSet.mkString("'',''")}''")
     println("| ") 
     
+    val t0 = System.nanoTime
+    
     for(pair <- fileSet.subsets(2)){
       val t1 = System.nanoTime
       val file_1 = pair.head
@@ -60,8 +62,10 @@ object FirstHalf {
       val file_2_str = readFile(file_2.getAbsolutePath)
       print("| ")      
       Statistics.cosineSimStat(file_1.getName, file_2.getName, cosinesim(file_1_str, file_2_str, english_stopwords))
-      println("|	Calculada en temps: " + (System.nanoTime-t1)/Math.pow(10,9))
+      println("|	Calculada en temps: " + (System.nanoTime-t1)/Math.pow(10,9) + " segons")
     }
+    
+    println("Temps total per calcular totes les comparacions: " + (System.nanoTime-t0)/Math.pow(10,9) + " segons")
     
   }
   
@@ -129,7 +133,7 @@ object FirstHalf {
    * 	@pre File must exist, otherwise will throw an exception
    */
   def readFile(filename : String) : String = {
-  	val source = scala.io.Source.fromFile(filename)
+  	val source = scala.io.Source.fromFile(filename, "UTF-8")
 		val str = try source.map(c => if(acceptableChar(c)) c else ' ').mkString finally source.close()
 		str.toLowerCase.trim
   }
@@ -171,6 +175,13 @@ object FirstHalf {
     wordMap.toList
   }
   
+  /*	Computes the euclidean norm of a vector (of Double values)
+   *	@param v the Vector
+   */
+  def euclidean_norm(v: Iterable[Double]) = {
+    Math.sqrt( v.map( x => x*x ).reduceLeft( _ + _ ) )
+  }
+  
   /*	Given two strings representing two filtered documents, and a list of words that will be filtered, it computes its cosine similarity
    * 	@param s1 First document
    * 	@param s2 Second document
@@ -197,10 +208,6 @@ object FirstHalf {
     //compute cosinesim
     val term = smv1_vec.zip(smv2_vec).map(x => x._1 * x._2).reduceLeft( _ + _ )
     
-    def euclidean_norm(v: Iterable[Double]) = {
-      Math.sqrt( v.map( x => x*x ).reduceLeft( _ + _ ) )
-    }
-    
     term / (euclidean_norm(smv1_vec) * euclidean_norm(smv2_vec))
   }
     
@@ -225,43 +232,8 @@ object Main extends App {
     fileList
   }
   
-/* 
-def mappingTest(s: String, i: Int): List[(String, Int)] = {
-  println("Estic mapejant " + s + " amb valor " + i)
-  List((s,i))
-}
 
-def reducingTest(s: String, l: List[Int]): List[Int] = {
-  println("Estic reduint " + s + " i " + l)
-  l:::l:::l
-}
-
-object MapReducer {
-  
-  def textanalysis() = {
-    
-    var fileList = new java.io.File("test").listFiles.filter(_.getName.endsWith(".txt"))
-    /*
-    val system = ActorSystem("TextAnalizer")
-    val master = system.actorOf(Props[MapReduceActor])
-    master ! FileProcessing(fileList)*/
-    
-    val system = ActorSystem("TextAnalizer")
-    
-    val input = List(("hey", 1), ("wadup",2), ("not working", 3))
-    val master = system.actorOf(Props( new MapReduceActor[String, Int, String, Int](input,mappingTest, reducingTest,2,2) ))
-    
-    implicit val timeout = Timeout(10 days)
-    val futureResponse = master ? "start"
-    val result = Await.result(futureResponse, Duration.Inf)
-    println(result)
-    
-    system.shutdown
-  }
-  
-}*/
-
-object MapReducer2 {
+  object MapReducer2 {
         
     /*def mappingTest3(filename: String, words: List[String]): List[(String, Int)] = {
       for(word <- words) yield (word,1234)
@@ -435,12 +407,16 @@ object MapReduce3 {
     //MapReduceEnric.main1()
     //tractaxmldoc.titolsIRefs()
     MapReduce3.mapReduceDocumentsNoReferenciats()
+    
+    //MapReduceEnric.main1()
+    //tractaxmldoc.titolsIRefs()
   }
 }
 
 object MapReduceEnric{
+  
   def mapping1(file_name: String, file: (String, List[String])): List[(String, (String, Double))] = {
-    val wordList = FirstHalf.readFile(file._1).split(" +").toList.filterNot(file._2.contains(_))
+    val wordList = tractaxmldoc.readXMLFile(file._1).split(" +").toList.filterNot(file._2.contains(_))
     
     val x = (for(word <- wordList) yield (file_name, (word, 1.toDouble)))
     x
@@ -458,7 +434,7 @@ object MapReduceEnric{
   }
   
   
-  def mapping2(file_name: String, word_count: List[(String, Int)]): List[(String, String)] = {
+  def mapping2(file_name: String, word_count: List[(String, Double)]): List[(String, String)] = {
     word_count.map(x => (x._1, file_name))
   }
   
@@ -466,18 +442,53 @@ object MapReduceEnric{
     files
   }
   
+  /*
+   * 
+   */
+  def mapping3(file_name: String, tf_idf_unfolded: (List[(String, Double)], Map[String, Double])): List[(String, (String,Double))] = {
+    for (term_freq <- tf_idf_unfolded._1) 
+      yield ( (file_name, (term_freq._1, term_freq._2 * tf_idf_unfolded._2(term_freq._1))))
+  }
   
-  def cosinesim2() = {
-    0
+  def reducing3(file_name: String, tf_idf: List[(String, Double)]) = {
+    tf_idf
+  }
+  
+  def cosinesim2(m1: Map[String, Double], m2: Map[String, Double]): Double = {
+    
+    //aligning vectors
+    val smv1 = m2.map({ case (key, value) => (key, 0.0)}) ++ m1
+    val smv2 = m1.map({ case (key, value) => (key, 0.0)}) ++ m2
+    
+    //simplify vectors
+    val smv1_vec = smv1.values.map(x => x.asInstanceOf[Double])
+    val smv2_vec = smv2.values.map(x => x.asInstanceOf[Double])
+    
+    //compute cosinesim
+    val term = smv1_vec.zip(smv2_vec).map(x => x._1 * x._2).reduceLeft( _ + _ )
+    
+    term / (FirstHalf.euclidean_norm(smv1_vec) * FirstHalf.euclidean_norm(smv2_vec))
+  }
+  
+  def mapping4(files: (String, String), tf_idfs:(List[(String, Double)], List[(String, Double)]) ) = {
+    val cosinesim = cosinesim2(tf_idfs._1.toMap, tf_idfs._2.toMap)
+    
+    List((files, cosinesim))
+  }
+  
+  def reducing4(files: (String, String), cosinesim: List[Double]) = {
+    cosinesim
   }
   
   def main1() = {
     
     println("Calculs iniciats...")
-    val t1 = System.nanoTime
+    val tstart = System.nanoTime
     
-    val stopwords = FirstHalf.readFile("test/english-stop.txt").split(" +").toList
-    val files = Main.openFiles("test", "pg", ".txt")
+    val nFiles = 100 //For illustration purposes.
+    
+    val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
+    val files = Main.openFiles("wiki-xml-2ww5k", "", ".xml").take(nFiles)
     implicit val timeout = Timeout(10 days)
     
     val nMappers = 10
@@ -487,23 +498,57 @@ object MapReduceEnric{
 
     val system = ActorSystem("TextAnalizer2")
 
-    var master = system.actorOf(Props(new MapReduceActor[String, (String, List[String]), String, (String, Double)](input, MapReduceEnric.mapping1, MapReduceEnric.reducing1, nMappers, nReducers)))
+    var master = system.actorOf(Props(new MapReduceActor[String, (String, List[String]), String, (String, Double)](input, mapping1, reducing1, nMappers, nReducers)))
     
     val futureResponse1 = master ? "start"
-    val tf = Await.result(futureResponse1, timeout.duration).asInstanceOf[Map[String, List[(String, Int)]]]
+    val tf = Await.result(futureResponse1, timeout.duration).asInstanceOf[Map[String, List[(String, Double)]]]
     
     system.stop(master)
     
-    master = system.actorOf(Props(new MapReduceActor[String, List[(String, Int)], String, String](tf.toList, MapReduceEnric.mapping2, MapReduceEnric.reducing2, nMappers, nReducers)))
+    master = system.actorOf(Props(new MapReduceActor[String, List[(String, Double)], String, String](tf.toList, mapping2, reducing2, nMappers, nReducers)))
     
     val futureResponse2 = master ? "start"
-    val df = Await.result(futureResponse2, timeout.duration)
+    val df = Await.result(futureResponse2, timeout.duration).asInstanceOf[Map[String, List[String]]]
     
-    val finalInput = 0
+    system.stop(master)
+    
+    //this line could be done with MapReduce, but the overhead caused by map and reduce actor initialization is not worth the time
+    val idf = df.map(x => (x._1, Math.log(tf.size/x._2.length)))
+    
+    
+    //input: List[File -> ( List[(Word, dtf)], List[(Word, idf)])]
+    val tfIdfInput = tf.map({case (k,v) => (k, (v,idf))})
+    
+    master = system.actorOf(Props(new MapReduceActor[String, (List[(String, Double)], Map[String, Double]), String, (String, Double)](tfIdfInput.toList, mapping3, reducing3, nMappers, nReducers)))
+    
+    val futureResponse3 = master ? "start"
+    val tf_idf = Await.result(futureResponse3, timeout.duration).asInstanceOf[Map[String, List[(String, Double)]]]
+    
+    system.stop(master)
+    
+    //Map[(FileName, FileName) -> (List[(Word, tfidf)], List[(Word, tfidf)])
+    val comparisonList = for ( pair <- tf_idf.toSet.subsets(2) ) yield {
+      ((pair.head._1, pair.drop(1).head._1), (pair.head._2, pair.drop(1).head._2))
+    }
+    
+    master = system.actorOf(Props(new MapReduceActor[(String, String), (List[(String, Double)], List[(String, Double)]), (String, String), Double](comparisonList.toList, mapping4, reducing4, nMappers, nReducers)))
+    
+    val futureResponse4 = master ? "start"
+    val result = Await.result(futureResponse4, timeout.duration).asInstanceOf[Map[(String, String), List[Double]]]
+    
+    val finalResult = result.map({case (k,v) => (k, v.apply(0))})
+    
+    val tend = System.nanoTime
+    
+    println("Resultats del calcul de similaritat entre documents: ")
+    
+    for(singleResult <- finalResult){
+      println("Els documents " + singleResult._1._1 + " i " + singleResult._1._2 + " tenen una similaritat del " + singleResult._2*100 + "%")
+    }
+    
+    println("Calculs finalitzats. Temps total: " + (tend-tstart)/Math.pow(10,9))
     
     system.shutdown
-    
-    println("Calculs finalitzats. Temps total: " + (System.nanoTime-t1)/Math.pow(10,9))
     
     println(df)
     

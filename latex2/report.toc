@@ -1,4 +1,4 @@
-\select@language {catalan}
+\babel@toc {catalan}{}
 \contentsline {chapter}{\numberline {1}Exemple de titol}{3}{chapter.1}
 \contentsline {chapter}{\numberline {2}Titol 2}{4}{chapter.2}
 \contentsline {section}{\numberline {2.1}Per Coordenades}{4}{section.2.1}
