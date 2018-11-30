@@ -220,7 +220,7 @@ object Main extends App {
   }
 	
   //Aquesta funcio es canviarà
-  def openPgTxtFiles(folder: String, startsWith: String, endsWith: String): Array[java.io.File] = {
+  def openFiles(folder: String, startsWith: String, endsWith: String): Array[java.io.File] = {
     var fileList = new java.io.File(folder).listFiles.filter(_.getName.startsWith(startsWith)).filter(_.getName.endsWith(endsWith))
     fileList
   }
@@ -292,7 +292,7 @@ object MapReducer2 {
       val res2 = idf2(res1).asInstanceOf[Map[String,List[Int]]] //Map[paraula, List[Ocurrències al conjunt de fitxers C]]
       //for(i <- res2) println(i._1 + " -> " + i._2.apply(0)) //els valors van de 0 a nDocuments
       
-      val nDocuments = openPgTxtFiles(folder, "pg", ".txt").length.toDouble //Nombre de documents en el conjunt C
+      val nDocuments = openFiles(folder, "pg", ".txt").length.toDouble //Nombre de documents en el conjunt C
       val idfList = for(i <- res2) yield (i._1, math.log10(nDocuments/i._2.apply(0))) //calculem idf per cada paraula que apareix en el conjunt de documents
       //Segur que és el logaritme en base 10? Podria ser un map en comptes d'una list
       
@@ -335,7 +335,7 @@ object MapReducer2 {
     }
     
     def idf1(folder: String) = {
-      val files = openPgTxtFiles(folder, "pg", ".txt")
+      val files = openFiles(folder, "pg", ".txt")
       val input = for(file <- files) yield (file.getName, FirstHalf.readFile(file.getAbsolutePath).split(" +").toList)
       
       val system = ActorSystem("TextAnalizer2")
@@ -428,7 +428,7 @@ object MapReduceEnric{
     val t1 = System.nanoTime
     
     val stopwords = FirstHalf.readFile("test/english-stop.txt").split(" +").toList
-    val files = Main.openPgTxtFiles("test", "pg", ".txt")
+    val files = Main.openFiles("test", "pg", ".txt")
     implicit val timeout = Timeout(10 days)
     
     val nMappers = 10

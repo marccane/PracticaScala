@@ -32,7 +32,7 @@ object tractaxmldoc{
 	}
 	
 	def titolsIRefs(){
-	  val files = Main.openPgTxtFiles("smallxml", "", ".xml")
+	  val files = Main.openFiles("smallxml", "", ".xml")
     //val input = for(file <- files) yield (file.getName, FirstHalf.readFile(file.getAbsolutePath).split(" +").toList)
 	  
 	  for(file<-files){
