@@ -31,6 +31,29 @@ object tractaxmldoc{
 	  println(kk.length)
 	}
 	
+	def titolsIRefs(){
+	  val files = Main.openPgTxtFiles("smallxml", "", ".xml")
+    //val input = for(file <- files) yield (file.getName, FirstHalf.readFile(file.getAbsolutePath).split(" +").toList)
+	  
+	  for(file<-files){
+  	  val xmlleg=new java.io.InputStreamReader(new java.io.FileInputStream(file), "UTF-8")
+  	  val xmllegg = XML.load(xmlleg)
+  	  val titol=(xmllegg \\ "title").text
+  	  print("Titol: " + titol + " Referencies: ")
+  	  
+  	  val contingut = (xmllegg \\ "text").text 
+  	  val ref = new Regex("\\[\\[[^\\]]*\\]\\]") 
+  	  val refs=(ref findAllIn contingut).toList
+  	  
+  	  //cuidao: l'ordre d'aquestes operacions IMPORTA
+  	  val kk3 = refs.filterNot(x=> x.contains(':') || x.apply(2)=='#').map(x=>x.substring(2,x.length()-2)).map(x=>x.split("\\|").apply(0)).map(x=>x.split("#").apply(0))
+  	  //CUIDAO: hi haurà referències a pàgines que no tenim!
+  	  
+  	  for (r <- kk3) print("'" + r + "' ")
+  	  println()
+	  }
+	}
+	
   def acceptableChar(c: Char): Boolean = c.isLetter || c == ' ' //|| c == '\''
   
   //Given an xml file, extracts the contents of the text region and produces a representative string that only contains lower case characters and spaces

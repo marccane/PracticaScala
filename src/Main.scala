@@ -384,7 +384,8 @@ object MapReducer2 {
 
     //MapReducer2.start()
     
-    MapReduceEnric.main1()
+    //MapReduceEnric.main1()
+    tractaxmldoc.titolsIRefs()
   }
 }
 
