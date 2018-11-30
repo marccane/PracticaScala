@@ -454,41 +454,35 @@ object SecondHalf {
       val result = Await.result(futureResponse, timeout.duration)
       system.stop(master)
       
-      val result1map = result.asInstanceOf[Map[String,List[String]]]
-      //for(i<-result1map) println(i._1)
-      val filterDocuments = result1map.filter(x => titles.contains(x._1))
-      //print("canvi")
-      for(i<-filterDocuments) println(i._1)
+      val result1map = result.asInstanceOf[Map[String,List[String]]] //Map[titol, list[titol dels documents que el referencien]]
+      val filterDocuments = result1map.filter(x => titles.contains(x._1)) //només ens quedem amb els titols dels maps 
       
       //val retallat = filterDocuments.slice(0, 100)
       //for(i <- retallat) println(i._1 + " -> " + i._2)
       
       val result2senseMR = for(i <- filterDocuments.toList) yield (i._1,  titles.filterNot(x => i._2.contains(x) || x.equals(i._2)))
       val result2mapNoMR = result2senseMR.toMap
-      val result2senseMRtemp = for(title <- titles) yield {
+      val result2filled = for(title <- titles) yield {
         if (result2mapNoMR.contains(title))
           (title, result2mapNoMR(title))
         else
           (title, List())
       }
-      val result2mapNoMRfilled = result2senseMRtemp.toMap
+      val result2mapNoMRfilled = result2filled.toMap
       
       //print(result2senseMR.take(10))
       
       val Llindar: Double = 0.2
       
       val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
-      val tf_idf = MapReduceTfIdf.computeSimilarities(files, stopwords, 10, 10)
+      val tf_idf = MapReduceTfIdf.computeSimilarities(files, stopwords, 10, 10, false)
       val tf_idf2 = tf_idf.filter(x => x._2 > Llindar)
       
       val fileMap = tractaxmldoc.titolsNomfitxer(files).toMap
-      //println(fileMap)
-      for(i<-result2mapNoMR) println(i._1)
-      //println(tf_idf2.size)
       val tf_idf3 = tf_idf2.filter(x => result2mapNoMRfilled(fileMap(x._1._1)).contains(fileMap(x._1._2)) )
-      //print(tf_idf3.size)
       
-      print(tf_idf3.take(10))
+      println("10 primeres parelles de pagines similars que no es referencien una a l'altra")
+      for(i <- tf_idf3.take(10)) println(i)
       
       val input2 = for(elem <- filterDocuments.toList) yield {
         val temp = elem
@@ -496,8 +490,6 @@ object SecondHalf {
         val refs = temp._2
         (title, (refs, titles))
       }
-      
-      //print(input2.take(10))
       
       master = system.actorOf(Props(new MapReduceActor[String, (List[String], List[String]), String, String](input2, mapping2, reducing2, 2, 2)))
       val futureResponse2 = master ? "start"
@@ -531,13 +523,11 @@ object Main extends App {
     
     //FirstHalf.main()
     
-    /*val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
+    val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
     val files = Main.openFiles("wiki-xml-2ww5k", "", ".xml").take(100)
+    //SecondHalf.MapReduceTfIdf.computeSimilarities(files.toList, stopwords, 10, 10, true)
     
-    println(SecondHalf.MapReduceTfIdf.computeSimilarities(files.toList, stopwords, 10, 10, false))
-    */
-    
-    //SecondHalf.MapReduceRef.mapReduceDocumentsNoReferenciats()
+    SecondHalf.MapReduceRef.mapReduceDocumentsNoReferenciats()
   }
 }
 
