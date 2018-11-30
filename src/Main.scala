@@ -6,6 +6,9 @@ import akka.util.Timeout
 import scala.language.postfixOps
 import scala.math
 
+
+/*	This object contains all the code of the first part of the hand in.
+ */
 object FirstHalf {
   
   def main() = {
@@ -220,7 +223,7 @@ object Main extends App {
     fileList
   }
 	
-object MapReduce3 {
+  object MapReduce3 {
   
     def mapping1(title: String, referencedDocs: List[String]): List[(String, String)] = {
       for( doc <- referencedDocs) yield (doc, title) //document, document que fa referencia al primer
@@ -270,7 +273,7 @@ object MapReduce3 {
       
       println(result2)
     }
-}
+  }
 
   override def main(args:Array[String]) =  {
     
@@ -285,6 +288,11 @@ object MapReduce3 {
 
 object MapReduceTfIdf{
   
+  /*	First mapping function. Given a file name (not the path) and a tuple (File_path, List[stopwords]) 
+   * 	generates all the pairs (file name, (word, 1)). This will let us reduce the list to a list of ocurrences (frequency)
+   * 	@param file_name The file name
+   * 	@param 
+   */
   def mapping1(file_name: String, file: (String, List[String])): List[(String, (String, Double))] = {
     val wordList = tractaxmldoc.readXMLFile(file._1).split(" +").toList.filterNot(file._2.contains(_))
     
