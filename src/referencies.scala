@@ -32,6 +32,14 @@ object tractaxmldoc{
   	  titol
     }
   
+  def titolsNomfitxer(files: List[java.io.File]): List[(String,String)] = 
+    for(file <- files) yield {
+      val xmlleg=new java.io.InputStreamReader(new java.io.FileInputStream(file), "UTF-8")
+  	  val xmllegg = XML.load(xmlleg)
+  	  val titol=(xmllegg \\ "title").text
+  	  (file.getName, titol)
+    }
+  
   /*	Given an xml file, extracts the contents of the text region and produces a representative string that only contains lower case characters and spaces
    * 	@param filename The name of the xml file to be read
    */

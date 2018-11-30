@@ -422,12 +422,16 @@ object SecondHalf {
       system.stop(master)
       
       val result1map = result.asInstanceOf[Map[String,List[String]]]
+      for(i<-result1map) println(i._1)
       val filterDocuments = result1map.filter(x => titles.contains(x._1))
+      print("canvi")
+      for(i<-filterDocuments) println(i._1)
       
       //val retallat = filterDocuments.slice(0, 100)
       //for(i <- retallat) println(i._1 + " -> " + i._2)
       
       val result2senseMR = for(i <- filterDocuments.toList) yield (i._1,  titles.filterNot(x => i._2.contains(x) || x.equals(i._2)))
+      val result2mapNoMR = result2senseMR.toMap
       //print(result2senseMR.take(10))
       
       val Llindar: Double = 0.2
@@ -435,9 +439,15 @@ object SecondHalf {
       val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
       val tf_idf = MapReduceTfIdf.computeSimilarities(files, stopwords, 10, 10)
       val tf_idf2 = tf_idf.filter(x => x._2 > Llindar)
-      //val tf_idf4 = 
       
-      print(tf_idf2.take(10))
+      val fileMap = tractaxmldoc.titolsNomfitxer(files).toMap
+      //println(fileMap)
+      for(i<-result2mapNoMR) println(i._1)
+      println(tf_idf2.size)
+      val tf_idf3 = tf_idf2.filter(x => result2mapNoMR(fileMap(x._1._1)).contains(fileMap(x._1._2)) )
+      print(tf_idf3.size)
+      
+      print(tf_idf3.take(10))
       
       val input2 = for(elem <- filterDocuments.toList) yield {
         val temp = elem
