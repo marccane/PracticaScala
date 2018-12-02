@@ -442,12 +442,11 @@ object SecondHalf {
       docsRefer
     }*/
     
-    def mapReduceDocumentsNoReferenciats() = {
+    def mapReduceDocumentsNoReferenciats(files: List[java.io.File], Llindar: Double) = {
       
-      val files = Main.openFiles("wiki-xml-2ww5k", "", ".xml").toList.take(100)
       val input = for(file <- files) yield tractaxmldoc.referencies(file)
       val titles = tractaxmldoc.titols(files)
-      
+    
       var system = ActorSystem("DocsReferenciats")
       var master = system.actorOf(Props(new MapReduceActor[String, List[String], String, String](input, mapping1, reducing1, 2, 2)))
       implicit val timeout = Timeout(10 days)
@@ -481,8 +480,6 @@ object SecondHalf {
       }
       val result2mapfilled = result2filled.toMap
       
-      val Llindar: Double = 0.2
-      
       val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
       val tf_idf = MapReduceTfIdf.computeSimilarities(files, stopwords, 10, 10, false)
       val tf_idf2 = tf_idf.filter(x => x._2 > Llindar)
@@ -490,16 +487,20 @@ object SecondHalf {
       val fileMap = tractaxmldoc.titolsNomfitxer(files).toMap
       val tf_idf3 = tf_idf2.filter(x => result2mapfilled(fileMap(x._1._1)).contains(fileMap(x._1._2)) )
       
+      println("Longitud: " + tf_idf3.size)
       println("10 primeres parelles de pagines similars que no es referencien una a l'altra")
-      for(i <- tf_idf3.take(10)) println(i)
+      for(i <- tf_idf3.take(10)) println(fileMap(i._1._1) + ", " + fileMap(i._1._2) + " -> " + i._2 )
+      //for(i <- tf_idf3.take(10)) println(i)
       
       
       val tf_idf4 = tf_idf.filter(x => x._2 < Llindar)
       val tf_idf5 = tf_idf4.filterNot(x => result2mapfilled(fileMap(x._1._1)).contains(fileMap(x._1._2)) )
       
       println()
-      println("10 primeres parelles de pagines similars que no es referencien")
-      for(i <- tf_idf5.take(10)) println(i)
+      println("Longitud: " + tf_idf5.size)
+      println("10 primeres parelles de pagines que es referencien pero no son similars")
+      for(i <- tf_idf5.take(10)) println(fileMap(i._1._1) + ", " + fileMap(i._1._2) + " -> " + i._2 )
+      //for(i <- tf_idf5.take(10)) println(i)
       
       system.shutdown
     }
@@ -525,17 +526,22 @@ object Main extends App {
    */
   override def main(args:Array[String]) =  {
     
-    FirstHalf.main()
+    //FirstHalf.main()
     
     println("\n")
     
     val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
     val files = Main.openFiles("wiki-xml-2ww5k", "", ".xml").take(100)
-    SecondHalf.MapReduceTfIdf.computeSimilarities(files.toList, stopwords, 10, 10, true)
+    val tstart = System.nanoTime
+    val nActors = 20
+    SecondHalf.MapReduceTfIdf.computeSimilarities(files.toList, stopwords, nActors, nActors, true)
+    println("Temps total: " + (System.nanoTime-tstart)/Math.pow(10,9))
     
     println("\n")
     
-    SecondHalf.MapReduceRef.mapReduceDocumentsNoReferenciats()
+    val files2 = Main.openFiles("wiki-xml-2ww5k", "", ".xml").toList.take(300)
+    val llindar = 0.5
+    //SecondHalf.MapReduceRef.mapReduceDocumentsNoReferenciats(files2, llindar)
   }
 }
 
