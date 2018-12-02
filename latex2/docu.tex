@@ -53,7 +53,7 @@ Recopilatori amb exemples de les principals funcions d'ordre superior usades a l
 
 $ map :: (a \rightarrow b) \rightarrow [a] \rightarrow [b] $ \\
 
-La funció d'ordre superior més utilitzada és sense cap mena de dubte la funció $ \emph{map} $. Tot i que principalment s'usa per convertir les dades, en algun cas també la usem per realitzar operacions aritmètices sobre dues llistes representant vectors.
+La funció d'ordre superior més utilitzada és sense cap mena de dubte la funció $ \emph{map} $. Tot i que principalment s'usa per convertir les dades, en algun cas també la usem per realitzar operacions aritmètiques sobre dues llistes representant vectors.
 
 La primera aplicació de la funció que se'ns va passar pel cap va ser la de filtrar els fitxers d'entrada.
 
@@ -162,7 +162,7 @@ def mapping2(file_name: String, word_count: List[(String, Double)]): List[(Strin
 
 \newpage
 
-Tenim una adaptació de la funcio $ \emph{cosinesim} $ per a usar-la a la segona part amb els MapReduce. Com era d'esperar, aquesta adaptació usa de la mateixa manera que la primera la funció $ \emph{map} $.
+Tenim una adaptació de la funció $ \emph{cosinesim} $ per a usar-la a la segona part amb els MapReduce. Com era d'esperar, aquesta adaptació usa de la mateixa manera que la primera la funció $ \emph{map} $.
 
 \begin{lstlisting}[style=scalaHighlight]
 /*	Given two maps representing the frequency counts of the words of two files, it computes its cosine similarity
@@ -186,7 +186,7 @@ def cosinesim2(m1: Map[String, Double], m2: Map[String, Double]): Double = {
 }
 \end{lstlisting}
 
-A vegades ens interessa fer un petit processat de la input abans de passar\-la al MapReduce. En aquestes situacions la funcio $ \emph{map} $ ens és molt útil.
+A vegades ens interessa fer un petit processat de la input abans de passar\-la al MapReduce. En aquestes situacions la funció $ \emph{map} $ ens és molt útil.
 
 \begin{lstlisting}[style=scalaHighlight]
 //// 3/4 Computing TF_IDF ////
@@ -208,7 +208,7 @@ El mateix podem dir per el resultat final.
       val finalResult = result.map({case (k,v) => (k, v.apply(0))})
 \end{lstlisting}
 
-I per acabar, al segon apartat de la segona part de la pràctica usem la funció $ \emph{map} $ per eliminar els claudators inicials i finals, i posteriorment la usem un parell de cops més per tallar l'string i agafar només el titol del document al que fa referencia, eliminant sobrenoms dels documents i noms de seccio del document.
+I per acabar, al segon apartat de la segona part de la pràctica usem la funció $ \emph{map} $ per eliminar els claudàtors inicials i finals, i posteriorment la usem un parell de cops més per tallar la string i agafar només el títol del document al que fa referencia, eliminant sobrenoms dels documents i noms de secció del document.
 
 \begin{lstlisting}[style=scalaHighlight]
 //The order of the operations is important. There'll be references to pages that we don't have
@@ -289,7 +289,7 @@ Posteriorment la usem per filtrar els documents per llindars de similitud i per 
 
 \newpage
 
-I per acabar, també la fem servir quan volem treure els enllaços a fitxers multimedia durant el filtratge a de referencies.
+I per acabar, també la fem servir quan volem treure els enllaços a fitxers multimèdia durant el filtratge a de referencies.
 
 \begin{lstlisting}[style=scalaHighlight]
 //The order of the operations is important. There'll be references to pages that we don't have
@@ -304,7 +304,7 @@ I per acabar, també la fem servir quan volem treure els enllaços a fitxers mul
 $ reduceLeft :: (a \rightarrow a \rightarrow a) \rightarrow [a] \rightarrow [a] $ \\
 $ foldLeft :: a \rightarrow (a \rightarrow a \rightarrow a) \rightarrow [a] \rightarrow [a] $ \\
 
-Si has arribat fins aquí, segurament hauras vist que $\emph{reduceLeft}$ és una de les funcions que més es repeteixen. I és que també la usem múltiples vegades. També fem servir la funció $ \emph{foldLeft}$, que és molt semblant $\emph{reduceLeft}$ però ens permet triar l'element inical amb el que començar el "plegat" de la col$\cdot$lecció. Aquesta última només es fa servir un cop a l'hora de mostrar els resultats de la primera part, i podria ser substituida per $\emph{reduceLeft}$.
+Si has arribat fins aquí, segurament hauràs vist que $\emph{reduceLeft}$ és una de les funcions que més es repeteixen. I és que també la usem múltiples vegades. També fem servir la funció $ \emph{foldLeft}$, que és molt semblant $\emph{reduceLeft}$ però ens permet triar l'element inicial amb el que començar el "plegat" de la col$\cdot$lecció. Aquesta última només es fa servir un cop a l'hora de mostrar els resultats de la primera part, i podria ser substituïda per $\emph{reduceLeft}$.
 
 \begin{lstlisting}[style=scalaHighlight]
 /*
@@ -323,7 +323,7 @@ Si has arribat fins aquí, segurament hauras vist que $\emph{reduceLeft}$ és un
     }
 \end{lstlisting}
 
-El primer ús de $\emph{reduceLeft}$ el podem trobar quan volem calcular la norma euclidada d'un vector de nombres. Amb reduce podem sumar fàcilment tots els elements del sumatori.
+El primer ús de $\emph{reduceLeft}$ el podem trobar quan volem calcular la norma euclidiana d'un vector de nombres. Amb reduce podem sumar fàcilment tots els elements del sumatori.
 
 \begin{lstlisting}[style=scalaHighlight]
 /*	Computes the euclidean norm of a vector (of Double values)
@@ -342,7 +342,7 @@ També s'usa per calcular el producte escalar dels dos vectors de freqüències 
 
 \newpage
 
-I per últim, la fem servir a l'hora de computar el nombre d'ocurrencies d'una paraula en un document amb MapReduce (primera funció de reducció).
+I per últim, la fem servir a l'hora de computar el nombre d'ocurrències d'una paraula en un document amb MapReduce (primera funció de reducció).
 
 \begin{lstlisting}[style=scalaHighlight]
 //key-> Filename, values-> list of (Word, count)
@@ -405,9 +405,9 @@ I també l'usa la funció $ \emph{reducing1} $ amb el resultat final del seu com
 
 \section{Computar similaritats}
 
-Aquesta implementació del MapReduce per resoldre el problema de trobar la similaritat entre documents fa ús de 4 instàncies consecutives d'aquest. 
+Aquesta implementació del MapReduce per resoldre el problema de trobar la similitud entre documents fa ús de 4 instàncies consecutives d'aquest. 
 
-El primer busca els vectors de freqüències absolutes de tots els fitxers que es volen comparar. La funció de mapping crea les parelles (fitxer, (paraula, 1)) i la funció reduce busca acumular totes aquestes tuples i deixar-ho en (fitxer, List[(paraula, ocurrencies)]).
+El primer busca els vectors de freqüències absolutes de tots els fitxers que es volen comparar. La funció de mapping crea les parelles (fitxer, (paraula, 1)) i la funció reduce busca acumular totes aquestes tuples i deixar-ho en (fitxer, List[(paraula, ocurrències)]).
 
 \begin{lstlisting}[style=scalaHighlight]
     /*  First mapping function. Given a file name (not the path) and a tuple (File_path, List[stopwords])
@@ -439,7 +439,7 @@ El primer busca els vectors de freqüències absolutes de tots els fitxers que e
 
 \end{lstlisting}
 
-A partir d'aquí, tot i que s'usa el patró MapReduce, no s'implementen funcions de reduce ja que de la manera que ho hem plantejat no són necessaries. En comptes d'una funció personalitzada usem una funció genèrica que serveix de passarela per a un dels seus paràmetres.
+A partir d'aquí, tot i que s'usa el patró MapReduce, no s'implementen funcions de reduce ja que de la manera que ho hem plantejat no són necessàries. En comptes d'una funció personalitzada usem una funció genèrica que serveix de passarel·la per a un dels seus paràmetres.
 
 \begin{lstlisting}[style=scalaHighlight]
 /*	Doesn't reduce. It's simply a pass through for the @p second parameter
@@ -451,9 +451,9 @@ def passThroughtReduce[A](first: Any, second: List[A]) = {
 }
 \end{lstlisting}
 
-D'aquesta manera podem seguir usant el patró MapReduce, tot i que no és la sol·lució més eficient. \\
+D'aquesta manera podem seguir usant el patró MapReduce, tot i que no és la solució més eficient. \\
 
-La segona funció de mapping preten trobar l'index invers per poder calcular l'idf.
+La segona funció de mapping pretén trobar l'index invers per poder calcular l'idf.
 
 \begin{lstlisting}[style=scalaHighlight]
     /*  Given a file name and its word counts, unfolds all its tuples to the reverse (Word, File) tuple.
@@ -521,7 +521,7 @@ I per acabar, l'última funció de mapping computa la similitud cosinus entre do
 
 \section{Parells de pagines similars sense referències i viceversa}
 
-El primer MapReduce fa les referències inverses de cada document, osigui que troba tots els documents que fan referència a ell.
+El primer MapReduce fa les referències inverses de cada document, és a dir, que troba tots els documents que fan referència a ell.
 En la funció de mapping generem cada parella (document, document que fa referència a l'anterior). En el reduce només descartem els repetits, per el cas de que un document tingués vàries referències a un altre.
 \begin{lstlisting}[style=scalaHighlight]
     def mapping1(title: String, referencedDocs: List[String]): List[(String, String)] = {
@@ -533,10 +533,10 @@ En la funció de mapping generem cada parella (document, document que fa referè
     }
 \end{lstlisting}
 
-A continuació quedava descartar totes les referències de documents que no teníem, eliminar les referències reflexives, crear entrades pels documents que no eren referenciats, cridar la funció per calcular les similaritats, filtrar els resultats amb el llindar i que no estiguessin relacionats.
+A continuació quedava descartar totes les referències de documents que no teníem, eliminar les referències reflexives, crear entrades pels documents que no eren referenciats, cridar la funció per calcular les similituds, filtrar els resultats amb el llindar i que no estiguessin relacionats.
 
 
-Aquest MapReduce havia d'invertir les referències als documents però no va funcionar com esperavem i no ens va quedar temps per arreglar-lo.
+Aquest MapReduce havia d'invertir les referències als documents però no va funcionar com esperàvem i no ens va quedar temps per arreglar-lo.
 \begin{lstlisting}[style=scalaHighlight]
     def mapping2(title: String, tuple: (List[String],List[String])): List[(String, String)] = {
       val allTitles = tuple._2
@@ -551,7 +551,7 @@ Aquest MapReduce havia d'invertir les referències als documents però no va fun
 
 \chapter{Classes usades}
 
-Hem fet servir una classe MapReduceActor que implementa el patró MapReduce usant la llibreria d'Scala AKKA actors. És una classe genèrica sobre 4 tipus i que té una serie de paràmetres. Aquests són els vistos a classe amb el mètode mapreduce. La classe exten la classe Actor, i per tant, també n'és un. Es podrien fer varios MapReduce simultàniament.
+Hem fet servir una classe MapReduceActor que implementa el patró MapReduce usant la llibreria d'Scala AKKA actors. És una classe genèrica sobre 4 tipus i que té una serie de paràmetres. Aquests són els vistos a classe amb el mètode mapreduce. La classe estén la classe Actor, i per tant, també n'és un. Es podrien fer varis MapReduce simultàniament.
 
 \begin{lstlisting}[style=scalaHighlight]
 class MapReduceActor[K, V, K2, V2]
@@ -563,7 +563,7 @@ class MapReduceActor[K, V, K2, V2]
     numReducers: Int                        ) extends Actor{
 \end{lstlisting}
 
-Aquesta classe conte a dins un conjunt de subclasses necessaries per al correcte funcionament d'aquesta.
+Aquesta classe conte a dins un conjunt de subclasses necessàries per al correcte funcionament d'aquesta.
 
 \begin{lstlisting}[style=scalaHighlight]
 //master - service messages
@@ -581,7 +581,7 @@ Aquestes classes s'usen per al pas de missatges master - service i viceversa. Tr
 
 \section{Resultats de la primera part}
 
-A la nostra aplicació podrem trobar un objecte anomenat FirstHalf que conté tot el codi corresponent a la primera part de la pràctica. Aquest objecte té un mètode anomenat $\emph{main}$ i conté un codi que prova el funcionament d'aquesta primera part. Per executar-lo hem colocat tots els documents proporcionats per el professor a una carpeta anomenada $\emph{test}$. El que fa és executar les mateixes proves que es mostren al enunciat de la primera part, i posteriorment comprova la similitud cosinus entre tots els fitxers de la carpeta test que començen per pg i tenen extensio .txt.
+A la nostra aplicació podrem trobar un objecte anomenat FirstHalf que conté tot el codi corresponent a la primera part de la pràctica. Aquest objecte té un mètode anomenat $\emph{main}$ i conté un codi que prova el funcionament d'aquesta primera part. Per executar-lo hem col·locat tots els documents proporcionats per el professor a una carpeta anomenada $\emph{test}$. El que fa és executar les mateixes proves que es mostren al enunciat de la primera part, i posteriorment comprova la similitud cosinus entre tots els fitxers de la carpeta test que comencen per pg i tenen extensió .txt.
 
 \newpage
 
@@ -789,9 +789,9 @@ Temps total per calcular totes les comparacions: 9.2560514 segons
 
 \section{Resultats de la segona part}
 
-\subsection{Resultats del càlcul de similaritat entre documents}
+\subsection{Resultats del càlcul de similitud entre documents}
 
-Per motius d'il·lustració, he decidit executar aquesta part del codi amb només 10 fitxers, ja que sinó la sortida es fa gegant i no aporta res al resultat. El que es fa per avaluar aquesta segona part es senzill, es carreguen uns quants fitxers xml i el fitxer de les stopwords i es demana a la funció $computeSimilarities(...)$ que ens mostri els resultats. Cal notar que es necessari ficar el parametre $verbose$ a cert per a que es mostrin els resultats.
+Per motius d'il·lustració, he decidit executar aquesta part del codi amb només 10 fitxers, ja que sinó la sortida es fa gegant i no aporta res al resultat. El que es fa per avaluar aquesta segona part es senzill, es carreguen uns quants fitxers xml i el fitxer de les stopwords i es demana a la funció $computeSimilarities(...)$ que ens mostri els resultats. Cal notar que es necessari ficar el paràmetre $verbose$ a cert per a que es mostrin els resultats.
 
 \begin{lstlisting}[style=scalaHighlight]
 val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
@@ -804,7 +804,7 @@ println("Temps total: " + (System.nanoTime-tstart)/Math.pow(10,9))
 
 \newpage
 
-El resultat de l'execució del seguent codi és el seguent.
+El resultat de l'execució d'aquest codi és el següent.
 
 \begin{verbatim}
 Calculs iniciats...
@@ -862,11 +862,11 @@ Temps total: 1.6636222
 
 \end{verbatim}
 
-\subsection{Resultats segons els llindars de simil·litud considerats}
+\subsection{Resultats segons els llindars de similitud considerats}
 
-Per comparar els resultats amb diferents llindars hem agafat un nombre de fitxers que contingués suficients documents perquè hi haguessin parelles similars pero alhora no massa gran perquè el càlcul no tardés molt. Hem decidit agafar 300 documents.
+Per comparar els resultats amb diferents llindars hem agafat un nombre de fitxers que contingués suficients documents perquè hi haguessin parelles similars però alhora no massa gran perquè el càlcul no tardés molt. Hem decidit agafar 300 documents.
 
-La seguent taula mostra el nombre de parelles de documents que obtenim que compleixin cada restricció amb diferents llindars.
+La següent taula mostra el nombre de parelles de documents que obtenim que compleixin cada restricció amb diferents llindars.
 
 
 \begin{center}
@@ -1030,7 +1030,7 @@ Nombre d'actors  & Temps \\ \hline
 \end{tabular}
 \end{center}
 
-Ho podem veure visualment en el seguent gràfic:
+Ho podem veure visualment en el següent gràfic:
 
 \begin{center}
 \begin{tikzpicture}
@@ -1060,7 +1060,7 @@ Ho podem veure visualment en el seguent gràfic:
 \end{center}
 
 En el gràfic veiem que el rendiment millora molt al passar de 1 a 2 actors, lleugerament al posar-ne 3 i molt poc al posar el quart.
-Al afegir els seguents el temps puja lleugerament i a partir dels 15 actors el temps de còmput augmenta considerablement a mesura que n'anem afegint més. El número òptim sembla ser el 4 i sembla tenir sentit ja que es correspon amb el número de fils que té la màquina. \\
+Al afegir els següents el temps puja lleugerament i a partir dels 15 actors el temps de còmput augmenta considerablement a mesura que n'anem afegint més. El número òptim sembla ser el 4 i sembla tenir sentit ja que es correspon amb el número de fils que té la màquina. \\
 
 Les proves de rendiment s'han fet en un intel i5 M430 (2010), 2.26 Ghz, 2 cores, 4 threads, 6 GB de RAM.
 
