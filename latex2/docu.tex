@@ -15,7 +15,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage{listings}
 \usepackage{color}
-\usepackage{titlesec}    
+\usepackage{titlesec}
 \usepackage{enumitem}
 %\usepackage[catalan]{babel}
 \usepackage{newunicodechar}
@@ -63,8 +63,6 @@
 \chapter{Principals funcions d'ordre superior usades}
 
 Recopilatori amb exemples de les principals funcions d'ordre superior usades a l'hora de realitzar aquesta pràctica.
-
-\newpage
 
 \section{Map}
 
@@ -354,8 +352,10 @@ def euclidean_norm(v: Iterable[Double]) = {
 També s'usa per calcular el producte escalar dels dos vectors de freqüències (terme de la formula de la similitud cosinus).
 
 \begin{lstlisting}[style=scalaHighlight]
-    val term = smv1_vec.zip(smv2_vec).map(x => x._1 * x._2).reduceLeft( _ + _ )   
+    val term = smv1_vec.zip(smv2_vec).map(x => x._1 * x._2).reduceLeft( _ + _ )
 \end{lstlisting}
+
+\newpage
 
 I per últim, la fem servir a l'hora de computar el nombre d'ocurrencies d'una paraula en un document amb MapReduce (primera funció de reducció).
 
@@ -418,6 +418,206 @@ I també l'usa la funció $ \emph{reducing1} $ amb el resultat final del seu com
 
 \chapter{Resultats d'execució}
 
+\section{Resultats de la primera part}
+
+A la nostra aplicació podrem trobar un objecte anomenat FirstHalf que conté tot el codi corresponent a la primera part de la pràctica. Aquest objecte té un mètode anomenat $\emph{main}$ i conté un codi que prova el funcionament d'aquesta primera part. Per executar-lo hem colocat tots els documents proporcionats per el professor a una carpeta anomenada $\emph{test}$. El que fa és executar les mateixes proves que es mostren al enunciat de la primera part, i posteriorment comprova la similitud cosinus entre tots els fitxers de la carpeta test que començen per pg i tenen extensio .txt.
+
+\newpage
+
+El codi d'aquesta funció és el següent.
+
+\begin{lstlisting}[style=scalaHighlight]
+def main() = {
+
+    //load stopwords
+    val english_stopwords = readFile("test/english-stop.txt").split(" +").toList
+
+    //load pg11 and pg11-net
+    val pg11 = readFile("test/pg11.txt")
+    val pg11_net = readFile("test/pg11-net.txt")
+
+    //load all the files that will be evaluated with cosinesim()
+    val fileSet = new java.io.File("test").listFiles.filter((x) => x.getName.startsWith("pg") && x.getName.endsWith(".txt")).toSet
+
+
+    /*
+     * 							Evaluating freq() function
+     */
+
+    Statistics.topN(freq(pg11).sortWith(moreFrequent), 10)
+
+    /*
+     * 							Evaluating nonstopfreq() function
+     */
+
+    Statistics.topN(nonstopfreq(pg11, english_stopwords).sortWith(moreFrequent), 10)
+
+    /*
+     * 							Evaluating paraulesfreqfreq() function
+     */
+
+    Statistics.paraulafreqfreqStats(paraulafreqfreq(pg11).sortWith(_._1 < _._1), 10, 5)
+
+     /*
+     * 							Evaluating ngrams() function
+     */
+
+    Statistics.topN(ngramsfreq(pg11, 3).sortWith(moreFrequent), 10)
+
+    /*
+     * 							Evaluating cosinesim() function
+     */
+
+    println(s"Similitud cosinus entre totes les permutacions dels fitxers: \n''${fileSet.mkString("'',''")}''")
+    println("| ")
+
+    val t0 = System.nanoTime
+
+    for(pair <- fileSet.subsets(2)){
+      val t1 = System.nanoTime
+      val file_1 = pair.head
+      val file_2 = pair.tail.head
+      val file_1_str = readFile(file_1.getAbsolutePath)
+      val file_2_str = readFile(file_2.getAbsolutePath)
+      print("| ")
+      Statistics.cosineSimStat(file_1.getName, file_2.getName, cosinesim(file_1_str, file_2_str, english_stopwords))
+      println("|	Calculada en temps: " + (System.nanoTime-t1)/Math.pow(10,9) + " segons")
+    }
+
+    println("Temps total per calcular totes les comparacions: " + (System.nanoTime-t0)/Math.pow(10,9) + " segons")
+
+  }
+\end{lstlisting}
+
+\newpage
+
+I ens genera la següent sortida. \\
+
+\begin{verbatim}
+N Words: 30419 Diferent: 3007
+Words                          ocurrences  frequency
+the                            1818        5,9765282 %
+and                            940         3,0901740 %
+to                             809         2,6595221 %
+a                              690         2,2683191 %
+of                             631         2,0743613 %
+it                             610         2,0053256 %
+she                            553         1,8179427 %
+i                              545         1,7916434 %
+you                            481         1,5812486 %
+said                           462         1,5187876 %
+
+N Words: 10038 Diferent: 2623
+Words                          ocurrences  frequency
+alice                          403         4,0147438 %
+gutenberg                      93          0,9264794 %
+project                        87          0,8667065 %
+queen                          75          0,7471608 %
+thought                        74          0,7371987 %
+time                           71          0,7073122 %
+king                           63          0,6276151 %
+turtle                         59          0,5877665 %
+began                          58          0,5778043 %
+tm                             57          0,5678422 %
+
+Les 10 frequencies mes frequents:
+1330 paraules apareixen 1
+468 paraules apareixen 2
+264 paraules apareixen 3
+176 paraules apareixen 4
+101 paraules apareixen 5
+72 paraules apareixen 6
+66 paraules apareixen 7
+74 paraules apareixen 8
+39 paraules apareixen 9
+35 paraules apareixen 10
+Les 5 frequencies menys frequents:
+1 paraules apareixen 631 vegades
+1 paraules apareixen 690 vegades
+1 paraules apareixen 809 vegades
+1 paraules apareixen 940 vegades
+1 paraules apareixen 1818 vegades
+
+N Words: 30417 Diferent: 25774
+Words                          ocurrences  frequency
+project gutenberg tm           57          0,1873952 %
+the mock turtle                53          0,1742447 %
+i don t                        31          0,1019167 %
+the march hare                 30          0,0986290 %
+said the king                  29          0,0953414 %
+the project gutenberg          29          0,0953414 %
+said the hatter                21          0,0690403 %
+the white rabbit               21          0,0690403 %
+said the mock                  19          0,0624651 %
+said to herself                19          0,0624651 %
+
+
+
+Similitud cosinus entre totes les permutacions dels fitxers:
+''test\pg74.txt'',''test\pg74-net.txt'',''test\pg11.txt'',''test\pg12-net.txt'',''test\pg2500.txt'',''test\pg11-net.txt'',''test\pg12.txt'',''test\pg2500-net.txt''
+|
+| La similitud cosinus entre pg74.txt i pg74-net.txt es de 0,9889848979
+|	Calculada en temps: 1.0292793 segons
+| La similitud cosinus entre pg74.txt i pg11.txt es de 0,2586942062
+|	Calculada en temps: 0.5597866 segons
+| La similitud cosinus entre pg74.txt i pg12-net.txt es de 0,2084141438
+|	Calculada en temps: 0.4712166 segons
+| La similitud cosinus entre pg74.txt i pg2500.txt es de 0,2993298356
+|	Calculada en temps: 0.516914 segons
+| La similitud cosinus entre pg74.txt i pg11-net.txt es de 0,2178060109
+|	Calculada en temps: 0.3915398 segons
+| La similitud cosinus entre pg74.txt i pg12.txt es de 0,2472302429
+|	Calculada en temps: 0.4011614 segons
+| La similitud cosinus entre pg74.txt i pg2500-net.txt es de 0,2679095018
+|	Calculada en temps: 0.4061952 segons
+| La similitud cosinus entre pg74-net.txt i pg11.txt es de 0,2149599531
+|	Calculada en temps: 0.3756475 segons
+| La similitud cosinus entre pg74-net.txt i pg12-net.txt es de 0,2097871125
+|	Calculada en temps: 0.3173072 segons
+| La similitud cosinus entre pg74-net.txt i pg2500.txt es de 0,2654043911
+|	Calculada en temps: 0.3413635 segons
+| La similitud cosinus entre pg74-net.txt i pg11-net.txt es de 0,2193384017
+|	Calculada en temps: 0.3003146 segons
+| La similitud cosinus entre pg74-net.txt i pg12.txt es de 0,2087121450
+|	Calculada en temps: 0.3352347 segons
+| La similitud cosinus entre pg74-net.txt i pg2500-net.txt es de 0,2689909063
+|	Calculada en temps: 0.4876476 segons
+| La similitud cosinus entre pg11.txt i pg12-net.txt es de 0,8238081983
+|	Calculada en temps: 0.2270051 segons
+| La similitud cosinus entre pg11.txt i pg2500.txt es de 0,2768360416
+|	Calculada en temps: 0.213087 segons
+| La similitud cosinus entre pg11.txt i pg11-net.txt es de 0,9516910223
+|	Calculada en temps: 0.1998175 segons
+| La similitud cosinus entre pg11.txt i pg12.txt es de 0,8764098616
+|	Calculada en temps: 0.1851824 segons
+| La similitud cosinus entre pg11.txt i pg2500-net.txt es de 0,2083246560
+|	Calculada en temps: 0.2210432 segons
+| La similitud cosinus entre pg12-net.txt i pg2500.txt es de 0,1984522576
+|	Calculada en temps: 0.2212506 segons
+| La similitud cosinus entre pg12-net.txt i pg11-net.txt es de 0,8641992087
+|	Calculada en temps: 0.169078 segons
+| La similitud cosinus entre pg12-net.txt i pg12.txt es de 0,9625994241
+|	Calculada en temps: 0.2217224 segons
+| La similitud cosinus entre pg12-net.txt i pg2500-net.txt es de 0,2022974710
+|	Calculada en temps: 0.1981073 segons
+| La similitud cosinus entre pg2500.txt i pg11-net.txt es de 0,2088845337
+|	Calculada en temps: 0.196527 segons
+| La similitud cosinus entre pg2500.txt i pg12.txt es de 0,2611308549
+|	Calculada en temps: 0.2370576 segons
+| La similitud cosinus entre pg2500.txt i pg2500-net.txt es de 0,9713523359
+|	Calculada en temps: 0.2717254 segons
+| La similitud cosinus entre pg11-net.txt i pg12.txt es de 0,8322888009
+|	Calculada en temps: 0.2073292 segons
+| La similitud cosinus entre pg11-net.txt i pg2500-net.txt es de 0,2131869392
+|	Calculada en temps: 0.2549333 segons
+| La similitud cosinus entre pg12.txt i pg2500-net.txt es de 0,2008062998
+|	Calculada en temps: 0.2815157 segons
+Temps total per calcular totes les comparacions: 9.2560514 segons
+
+\end{verbatim}
+
+\newpage
+
 \section{Resultats segons els llindars de simil·litud considerats}
 
 Per comparar els resultats amb diferents llindars hem agafat un nombre de fitxers que contingués suficients documents perquè hi haguessin parelles similars pero alhora no massa gran perquè el càlcul no tardés molt. Hem decidit agafar 300 documents.
@@ -428,7 +628,7 @@ La seguent taula mostra el nombre de parelles de documents que obtenim que compl
 \begin{center}
     \begin{tabular}{| c | c | c |}
     \hline
-    Llindar & Parells de pàgines similars no interrelacionades & Parells de pàgines no similars interrelacionades \\ \hline 
+    Llindar & Parells de pàgines similars no interrelacionades & Parells de pàgines no similars interrelacionades \\ \hline
     0.1 & 127 & 30849 \\ \hline
     0.2 & 24  & 31015 \\ \hline
     0.3 & 7   & 31047 \\ \hline
@@ -445,125 +645,125 @@ A continuació es mostra la sortida de les execucions amb els diferents llindars
 
 \textbf{10 primeres parelles de pàgines similars que no es referencien una a l'altra:} \\
 William Sholto Douglas, Otto Hoffmann von Waldau -\textgreater 0.1288872009766826 \\
-Castell japonès, Ninja -\textgreater 0.24025948403874114 \\ 
-William Sholto Douglas, Herbert Otto Gille -\textgreater 0.10360432690191622 \\  
-Nantes, William Sholto Douglas -\textgreater 0.10875873369929959 \\ 
-William Sholto Douglas, Orde Virtuti Militari -\textgreater 0.16418468360425356 \\  
-Copa Volpi per la millor interpretació masculina, Christopher Lee -\textgreater 0.18328534652636125 \\ 
-Ofensiva de Prússia Oriental, Front Oriental de la Segona Guerra Mundial -\textgreater 0.3728678286341218 \\ 
-William Sholto Douglas, Charles Elwood Yeager -\textgreater 0.1392076132407418 \\ 
-Andrew Browne Cunningham, Aleksandr Ivànovitx Pokrixkin -\textgreater 0.11123539067004148 \\ 
-Messerschmitt Me 262, Charles Elwood Yeager -\textgreater 0.11234735736587806 \\ 
- \\ 
-\textbf{10 primeres parelles de pàgines que es referencien però no són similars:} \\ 
-Ruth Benedict, Simfonia núm. 8 (Mahler) -\textgreater 0.009823870046741895 \\ 
-Smith, Història de l'Orient Mitjà -\textgreater 0.005021916293628367 \\ 
-Sempre en Galiza, Enginyeria inversa -\textgreater 0.0015703616271788405 \\ 
-Història de Mali, Palau Reial de Caserta -\textgreater 0.005265578590939846 \\ 
-Neonazisme, Corbeta -\textgreater 0.0029017094460869566 \\ 
-Memòries d'una geisha (pel·lícula), Reagrupament del Poble Francès -\textgreater 0.005632770711926015 \\ 
-Rebecca Clarke, Superheroi -\textgreater 0.005630297770149071 \\ 
-Federació Luterana Mundial, Gran Purga -\textgreater 0.0017906154961118467 \\ 
-Tres estudis per a figures al peu d'una crucifixió, Història de Kosovo -\textgreater 0.004374072163271377 \\ 
-Sivaix, Monarquia -\textgreater 0.00543964030225733 \\ 
- \\ 
+Castell japonès, Ninja -\textgreater 0.24025948403874114 \\
+William Sholto Douglas, Herbert Otto Gille -\textgreater 0.10360432690191622 \\
+Nantes, William Sholto Douglas -\textgreater 0.10875873369929959 \\
+William Sholto Douglas, Orde Virtuti Militari -\textgreater 0.16418468360425356 \\
+Copa Volpi per la millor interpretació masculina, Christopher Lee -\textgreater 0.18328534652636125 \\
+Ofensiva de Prússia Oriental, Front Oriental de la Segona Guerra Mundial -\textgreater 0.3728678286341218 \\
+William Sholto Douglas, Charles Elwood Yeager -\textgreater 0.1392076132407418 \\
+Andrew Browne Cunningham, Aleksandr Ivànovitx Pokrixkin -\textgreater 0.11123539067004148 \\
+Messerschmitt Me 262, Charles Elwood Yeager -\textgreater 0.11234735736587806 \\
+ \\
+\textbf{10 primeres parelles de pàgines que es referencien però no són similars:} \\
+Ruth Benedict, Simfonia núm. 8 (Mahler) -\textgreater 0.009823870046741895 \\
+Smith, Història de l'Orient Mitjà -\textgreater 0.005021916293628367 \\
+Sempre en Galiza, Enginyeria inversa -\textgreater 0.0015703616271788405 \\
+Història de Mali, Palau Reial de Caserta -\textgreater 0.005265578590939846 \\
+Neonazisme, Corbeta -\textgreater 0.0029017094460869566 \\
+Memòries d'una geisha (pel·lícula), Reagrupament del Poble Francès -\textgreater 0.005632770711926015 \\
+Rebecca Clarke, Superheroi -\textgreater 0.005630297770149071 \\
+Federació Luterana Mundial, Gran Purga -\textgreater 0.0017906154961118467 \\
+Tres estudis per a figures al peu d'una crucifixió, Història de Kosovo -\textgreater 0.004374072163271377 \\
+Sivaix, Monarquia -\textgreater 0.00543964030225733 \\
+ \\
 \newline
 \centerline{ \textbf{Llindar = 0.2} }
 \newline
- \\ 
-\textbf{10 primeres parelles de pàgines similars que no es referencien una a l'altra:} \\ 
-Castell japonès, Ninja -\textgreater 0.24025948403874114 \\ 
-Ofensiva de Prússia Oriental, Front Oriental de la Segona Guerra Mundial -\textgreater 0.3728678286341218 \\ 
-William Sholto Douglas, Galeazzo Ciano -\textgreater 0.23427707057165204 \\ 
-William Sholto Douglas, William Duthie Morgan -\textgreater 0.22460002270186138 \\ 
-Romania durant la Segona Guerra Mundial, Carles II de Romania -\textgreater 0.4688662370901408 \\ 
-Andrew Browne Cunningham, HMS Illustrious (87) -\textgreater 0.21220274194748687 \\ 
-William Sholto Douglas, Andrew McPherson -\textgreater 0.24777401361516543 \\ 
-Aleksei Antónov, Vasili Marguèlov -\textgreater 0.2175658681827359 \\ 
-Medalla dels Treballadors Distingits, Orde Virtuti Militari -\textgreater 0.22175752010250174 \\ 
-Castell japonès, Castell de Malbork -\textgreater 0.20047780310800487 \\ 
- \\ 
-\textbf{10 primeres parelles de pàgines que es referencien però no són similars:} \\ 
-Ruth Benedict, Simfonia núm. 8 (Mahler) -\textgreater 0.009823870046741895 \\ 
-Smith, Història de l'Orient Mitjà -\textgreater 0.005021916293628367 \\ 
-Sempre en Galiza, Enginyeria inversa -\textgreater 0.0015703616271788405 \\ 
-Història de Mali, Palau Reial de Caserta -\textgreater 0.005265578590939846 \\ 
-Neonazisme, Corbeta -\textgreater 0.0029017094460869566 \\ 
-Memòries d'una geisha (pel·lícula), Reagrupament del Poble Francès -\textgreater 0.005632770711926015 \\ 
-Rebecca Clarke, Superheroi -\textgreater 0.005630297770149071 \\ 
-Federació Luterana Mundial, Gran Purga -\textgreater 0.0017906154961118467 \\ 
-Tres estudis per a figures al peu d'una crucifixió, Història de Kosovo -\textgreater 0.004374072163271377 \\ 
-Sivaix, Monarquia -\textgreater 0.00543964030225733 \\ 
- \\ 
+ \\
+\textbf{10 primeres parelles de pàgines similars que no es referencien una a l'altra:} \\
+Castell japonès, Ninja -\textgreater 0.24025948403874114 \\
+Ofensiva de Prússia Oriental, Front Oriental de la Segona Guerra Mundial -\textgreater 0.3728678286341218 \\
+William Sholto Douglas, Galeazzo Ciano -\textgreater 0.23427707057165204 \\
+William Sholto Douglas, William Duthie Morgan -\textgreater 0.22460002270186138 \\
+Romania durant la Segona Guerra Mundial, Carles II de Romania -\textgreater 0.4688662370901408 \\
+Andrew Browne Cunningham, HMS Illustrious (87) -\textgreater 0.21220274194748687 \\
+William Sholto Douglas, Andrew McPherson -\textgreater 0.24777401361516543 \\
+Aleksei Antónov, Vasili Marguèlov -\textgreater 0.2175658681827359 \\
+Medalla dels Treballadors Distingits, Orde Virtuti Militari -\textgreater 0.22175752010250174 \\
+Castell japonès, Castell de Malbork -\textgreater 0.20047780310800487 \\
+ \\
+\textbf{10 primeres parelles de pàgines que es referencien però no són similars:} \\
+Ruth Benedict, Simfonia núm. 8 (Mahler) -\textgreater 0.009823870046741895 \\
+Smith, Història de l'Orient Mitjà -\textgreater 0.005021916293628367 \\
+Sempre en Galiza, Enginyeria inversa -\textgreater 0.0015703616271788405 \\
+Història de Mali, Palau Reial de Caserta -\textgreater 0.005265578590939846 \\
+Neonazisme, Corbeta -\textgreater 0.0029017094460869566 \\
+Memòries d'una geisha (pel·lícula), Reagrupament del Poble Francès -\textgreater 0.005632770711926015 \\
+Rebecca Clarke, Superheroi -\textgreater 0.005630297770149071 \\
+Federació Luterana Mundial, Gran Purga -\textgreater 0.0017906154961118467 \\
+Tres estudis per a figures al peu d'una crucifixió, Història de Kosovo -\textgreater 0.004374072163271377 \\
+Sivaix, Monarquia -\textgreater 0.00543964030225733 \\
+ \\
 \newline
 \centerline{ \textbf{Llindar = 0.3} }
 \newline
- \\ 
-\textbf{10 primeres parelles de pàgines similars que no es referencien una a l'altra:} \\ 
-Ofensiva de Prússia Oriental, Front Oriental de la Segona Guerra Mundial -\textgreater 0.3728678286341218 \\ 
-Romania durant la Segona Guerra Mundial, Carles II de Romania -\textgreater 0.4688662370901408 \\ 
-Operació Bagration, Ofensiva de Prússia Oriental -\textgreater 0.4248229547539587 \\ 
-Batalla del Cap Matapan, HMS Illustrious (87) -\textgreater 0.31551579001078023 \\ 
-Història de l'Argentina, Argentina -\textgreater 0.5759558134798274 \\ 
-William Sholto Douglas, James O'Meara -\textgreater 0.30860727097192947 \\ 
-Fußball-Club Bayern München, Cruzeiro Esporte Clube -\textgreater 0.5139419149640321 \\ 
- \\ 
-\textbf{10 primeres parelles de pàgines que es referencien però no són similars:} \\ 
-Ruth Benedict, Simfonia núm. 8 (Mahler) -\textgreater 0.009823870046741895 \\ 
-Smith, Història de l'Orient Mitjà -\textgreater 0.005021916293628367 \\ 
-Sempre en Galiza, Enginyeria inversa -\textgreater 0.0015703616271788405 \\ 
-Història de Mali, Palau Reial de Caserta -\textgreater 0.005265578590939846 \\ 
-Neonazisme, Corbeta -\textgreater 0.0029017094460869566 \\ 
-Memòries d'una geisha (pel·lícula), Reagrupament del Poble Francès -\textgreater 0.005632770711926015 \\ 
-Rebecca Clarke, Superheroi -\textgreater 0.005630297770149071 \\ 
-Federació Luterana Mundial, Gran Purga -\textgreater 0.0017906154961118467 \\ 
-Tres estudis per a figures al peu d'una crucifixió, Història de Kosovo -\textgreater 0.004374072163271377 \\ 
-Sivaix, Monarquia -\textgreater 0.00543964030225733 \\ 
- \\ 
+ \\
+\textbf{10 primeres parelles de pàgines similars que no es referencien una a l'altra:} \\
+Ofensiva de Prússia Oriental, Front Oriental de la Segona Guerra Mundial -\textgreater 0.3728678286341218 \\
+Romania durant la Segona Guerra Mundial, Carles II de Romania -\textgreater 0.4688662370901408 \\
+Operació Bagration, Ofensiva de Prússia Oriental -\textgreater 0.4248229547539587 \\
+Batalla del Cap Matapan, HMS Illustrious (87) -\textgreater 0.31551579001078023 \\
+Història de l'Argentina, Argentina -\textgreater 0.5759558134798274 \\
+William Sholto Douglas, James O'Meara -\textgreater 0.30860727097192947 \\
+Fußball-Club Bayern München, Cruzeiro Esporte Clube -\textgreater 0.5139419149640321 \\
+ \\
+\textbf{10 primeres parelles de pàgines que es referencien però no són similars:} \\
+Ruth Benedict, Simfonia núm. 8 (Mahler) -\textgreater 0.009823870046741895 \\
+Smith, Història de l'Orient Mitjà -\textgreater 0.005021916293628367 \\
+Sempre en Galiza, Enginyeria inversa -\textgreater 0.0015703616271788405 \\
+Història de Mali, Palau Reial de Caserta -\textgreater 0.005265578590939846 \\
+Neonazisme, Corbeta -\textgreater 0.0029017094460869566 \\
+Memòries d'una geisha (pel·lícula), Reagrupament del Poble Francès -\textgreater 0.005632770711926015 \\
+Rebecca Clarke, Superheroi -\textgreater 0.005630297770149071 \\
+Federació Luterana Mundial, Gran Purga -\textgreater 0.0017906154961118467 \\
+Tres estudis per a figures al peu d'una crucifixió, Història de Kosovo -\textgreater 0.004374072163271377 \\
+Sivaix, Monarquia -\textgreater 0.00543964030225733 \\
+ \\
 \newline
 \centerline{ \textbf{Llindar = 0.4} }
 \newline
- \\ 
-\textbf{10 primeres parelles de pàgines similars que no es referencien una a l'altra:} \\ 
-Romania durant la Segona Guerra Mundial, Carles II de Romania -\textgreater 0.4688662370901408 \\ 
-Operació Bagration, Ofensiva de Prússia Oriental -\textgreater 0.4248229547539587 \\ 
-Història de l'Argentina, Argentina -\textgreater 0.5759558134798274 \\ 
-Fußball-Club Bayern München, Cruzeiro Esporte Clube -\textgreater 0.5139419149640321 \\ 
- \\ 
-\textbf{10 primeres parelles de pàgines que es referencien però no són similars:} \\ 
-Ruth Benedict, Simfonia núm. 8 (Mahler) -\textgreater 0.009823870046741895 \\ 
-Smith, Història de l'Orient Mitjà -\textgreater 0.005021916293628367 \\ 
-Sempre en Galiza, Enginyeria inversa -\textgreater 0.0015703616271788405 \\ 
-Història de Mali, Palau Reial de Caserta -\textgreater 0.005265578590939846 \\ 
-Neonazisme, Corbeta -\textgreater 0.0029017094460869566 \\ 
-Memòries d'una geisha (pel·lícula), Reagrupament del Poble Francès -\textgreater 0.005632770711926015 \\ 
-Rebecca Clarke, Superheroi -\textgreater 0.005630297770149071 \\ 
-Federació Luterana Mundial, Gran Purga -\textgreater 0.0017906154961118467 \\ 
-Tres estudis per a figures al peu d'una crucifixió, Història de Kosovo -\textgreater 0.004374072163271377 \\ 
-Sivaix, Monarquia -\textgreater 0.00543964030225733 \\ 
- \\ 
+ \\
+\textbf{10 primeres parelles de pàgines similars que no es referencien una a l'altra:} \\
+Romania durant la Segona Guerra Mundial, Carles II de Romania -\textgreater 0.4688662370901408 \\
+Operació Bagration, Ofensiva de Prússia Oriental -\textgreater 0.4248229547539587 \\
+Història de l'Argentina, Argentina -\textgreater 0.5759558134798274 \\
+Fußball-Club Bayern München, Cruzeiro Esporte Clube -\textgreater 0.5139419149640321 \\
+ \\
+\textbf{10 primeres parelles de pàgines que es referencien però no són similars:} \\
+Ruth Benedict, Simfonia núm. 8 (Mahler) -\textgreater 0.009823870046741895 \\
+Smith, Història de l'Orient Mitjà -\textgreater 0.005021916293628367 \\
+Sempre en Galiza, Enginyeria inversa -\textgreater 0.0015703616271788405 \\
+Història de Mali, Palau Reial de Caserta -\textgreater 0.005265578590939846 \\
+Neonazisme, Corbeta -\textgreater 0.0029017094460869566 \\
+Memòries d'una geisha (pel·lícula), Reagrupament del Poble Francès -\textgreater 0.005632770711926015 \\
+Rebecca Clarke, Superheroi -\textgreater 0.005630297770149071 \\
+Federació Luterana Mundial, Gran Purga -\textgreater 0.0017906154961118467 \\
+Tres estudis per a figures al peu d'una crucifixió, Història de Kosovo -\textgreater 0.004374072163271377 \\
+Sivaix, Monarquia -\textgreater 0.00543964030225733 \\
+ \\
 \newline
 \centerline{ \textbf{Llindar = 0.5} }
 \newline
- \\ 
-\textbf{10 primeres parelles de pàgines similars que no es referencien una a l'altra:} \\ 
-Història de l'Argentina, Argentina -\textgreater 0.5759558134798274 \\ 
-Fußball-Club Bayern München, Cruzeiro Esporte Clube -\textgreater 0.5139419149640321 \\ 
- \\ 
-\textbf{10 primeres parelles de pàgines que es referencien però no són similars:} \\ 
-Ruth Benedict, Simfonia núm. 8 (Mahler) -\textgreater 0.009823870046741895 \\ 
-Smith, Història de l'Orient Mitjà -\textgreater 0.005021916293628367 \\ 
-Sempre en Galiza, Enginyeria inversa -\textgreater 0.0015703616271788405 \\ 
-Història de Mali, Palau Reial de Caserta -\textgreater 0.005265578590939846 \\ 
-Neonazisme, Corbeta -\textgreater 0.0029017094460869566 \\ 
-Memòries d'una geisha (pel·lícula), Reagrupament del Poble Francès -\textgreater 0.005632770711926015 \\ 
-Rebecca Clarke, Superheroi -\textgreater 0.005630297770149071 \\ 
-Federació Luterana Mundial, Gran Purga -\textgreater 0.0017906154961118467 \\ 
-Tres estudis per a figures al peu d'una crucifixió, Història de Kosovo -\textgreater 0.004374072163271377 \\ 
+ \\
+\textbf{10 primeres parelles de pàgines similars que no es referencien una a l'altra:} \\
+Història de l'Argentina, Argentina -\textgreater 0.5759558134798274 \\
+Fußball-Club Bayern München, Cruzeiro Esporte Clube -\textgreater 0.5139419149640321 \\
+ \\
+\textbf{10 primeres parelles de pàgines que es referencien però no són similars:} \\
+Ruth Benedict, Simfonia núm. 8 (Mahler) -\textgreater 0.009823870046741895 \\
+Smith, Història de l'Orient Mitjà -\textgreater 0.005021916293628367 \\
+Sempre en Galiza, Enginyeria inversa -\textgreater 0.0015703616271788405 \\
+Història de Mali, Palau Reial de Caserta -\textgreater 0.005265578590939846 \\
+Neonazisme, Corbeta -\textgreater 0.0029017094460869566 \\
+Memòries d'una geisha (pel·lícula), Reagrupament del Poble Francès -\textgreater 0.005632770711926015 \\
+Rebecca Clarke, Superheroi -\textgreater 0.005630297770149071 \\
+Federació Luterana Mundial, Gran Purga -\textgreater 0.0017906154961118467 \\
+Tres estudis per a figures al peu d'una crucifixió, Història de Kosovo -\textgreater 0.004374072163271377 \\
 Sivaix, Monarquia -\textgreater 0.00543964030225733 \\
 
 \newpage
-\section{Rendiment segons el nombre d'actors en el MapReduce}
+\chapter{Rendiment segons el nombre d'actors en el MapReduce}
 
 Per fer aquestes proves de rendiment hem usat el mètode SecondHalf.MapReduceTfIdf.computeSimilarities(...) amb els 100 primers documents i hem usat el mateix nombre d'actors tant per el $mapper$ com per el $reducer$.
 
@@ -610,7 +810,7 @@ Ho podem veure visualment en el seguent gràfic:
     coordinates {
     (1, 23.177229516)(2, 14.962622731)(3, 12.921794558)(4, 12.648637579)(5, 13.218281647)(8, 13.171002857)(10, 12.816006747)(15, 13.313055689)(20, 14.519156598)(25, 15.165376866)
     };
- 
+
 \end{axis}
 \end{tikzpicture}
 \end{center}
