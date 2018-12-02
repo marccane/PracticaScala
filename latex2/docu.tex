@@ -521,6 +521,8 @@ I per acabar, l'última funció de mapping computa la similitud cosinus entre do
 
 \section{Parells de pagines similars sense referències i viceversa}
 
+El primer MapReduce fa les referències inverses de cada document, osigui que troba tots els documents que fan referència a ell.
+En la funció de mapping generem cada parella (document, document que fa referència a l'anterior). En el reduce només descartem els repetits, per el cas de que un document tingués vàries referències a un altre.
 \begin{lstlisting}[style=scalaHighlight]
     def mapping1(title: String, referencedDocs: List[String]): List[(String, String)] = {
       for(doc <- referencedDocs) yield (doc, title) //document, document that references the first one
@@ -531,7 +533,9 @@ I per acabar, l'última funció de mapping computa la similitud cosinus entre do
     }
 \end{lstlisting}
 
-Aquest codi no va funcionar com esperavem:
+A continuació quedava descartar totes les referències de documents que no teníem, eliminar les referències reflexives, crear entrades pels documents que no eren referenciats, cridar la funció per calcular les similaritats, filtrar els resultats amb el llindar i que no estiguessin relacionats.
+
+Aquest MapReduce havia d'invertir les referències als documents però no va funcionar com esperavem i no ens va quedar temps per arreglar-lo.
 \begin{lstlisting}[style=scalaHighlight]
     def mapping2(title: String, tuple: (List[String],List[String])): List[(String, String)] = {
       val allTitles = tuple._2
@@ -1059,5 +1063,10 @@ Al afegir els seguents el temps puja lleugerament i a partir dels 15 actors el t
 
 Les proves de rendiment s'han fet en un intel i5 M430 (2010), 2.26 Ghz, 2 cores, 4 threads, 6 GB de RAM.
 
+\lstinputlisting[style=scalaHighlight]{src/Main.scala}
+
+\lstinputlisting[style=scalaHighlight]{src/MapReduceActor.scala}
+
+\lstinputlisting[style=scalaHighlight]{src/referencies.scala}
 
 \end{document} 
