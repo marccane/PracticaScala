@@ -5,12 +5,12 @@
 \usepackage[T1]{fontenc}
 \usepackage{listings}
 \usepackage{xcolor}
-
 \usepackage{a4wide}
 \usepackage{color}
 \usepackage{titlesec}
 \usepackage{enumitem}
 \usepackage{pgfplots}
+\usepackage[toc,page]{appendix}
 
 \definecolor{dkgreen}{rgb}{0,0.6,0}
 \definecolor{gray}{rgb}{0.5,0.5,0.5}
@@ -534,6 +534,7 @@ En la funció de mapping generem cada parella (document, document que fa referè
 \end{lstlisting}
 
 A continuació quedava descartar totes les referències de documents que no teníem, eliminar les referències reflexives, crear entrades pels documents que no eren referenciats, cridar la funció per calcular les similaritats, filtrar els resultats amb el llindar i que no estiguessin relacionats.
+
 
 Aquest MapReduce havia d'invertir les referències als documents però no va funcionar com esperavem i no ens va quedar temps per arreglar-lo.
 \begin{lstlisting}[style=scalaHighlight]
@@ -1063,10 +1064,19 @@ Al afegir els seguents el temps puja lleugerament i a partir dels 15 actors el t
 
 Les proves de rendiment s'han fet en un intel i5 M430 (2010), 2.26 Ghz, 2 cores, 4 threads, 6 GB de RAM.
 
+%\chapter{Codi font}
+\begin{appendices}
+
+\section{Main.scala}
 \lstinputlisting[style=scalaHighlight]{src/Main.scala}
 
+\newpage
+\section{MapReduceActor.scala}
 \lstinputlisting[style=scalaHighlight]{src/MapReduceActor.scala}
 
+\section{referencies.scala}
 \lstinputlisting[style=scalaHighlight]{src/referencies.scala}
+
+\end{appendices}
 
 \end{document} 
