@@ -1,0 +1,403 @@
+\documentclass{report}
+
+\usepackage[catalan]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstdefinestyle{scalaHighlight}{
+  frame=tb,
+  language=scala,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  basicstyle={\small\ttfamily},
+  numbers=none,
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  frame=single,
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3,
+}
+
+\begin{document}
+
+\title{Pràctica Scala}
+\author{Marc Cané i Enric Rodríguez}
+\date{20/10/2020}
+\maketitle
+
+\newpage
+\tableofcontents
+
+\newpage
+\chapter{Principals funcions d'ordre superior usades}
+
+Recopilatori amb exemples de les principals funcions d'ordre superior usades a l'hora de realitzar aquesta pràctica.
+
+\newpage
+
+\section{Map}
+
+$ map :: (a \rightarrow b) \rightarrow [a] \rightarrow [b] $ \\
+
+La funció d'ordre superior més utilitzada és sense cap mena de dubte la funció $ \emph{map} $. Tot i que principalment s'usa per convertir les dades, en algun cas també la usem per realitzar operacions aritmètices sobre dues llistes representant vectors.
+
+La primera aplicació de la funció que se'ns va passar pel cap va ser la de filtrar els fitxers d'entrada.
+
+\begin{lstlisting}[style=scalaHighlight]
+/*	Given a filename, produces a representative string that only contains lower case characters and spaces
+* 	@param filename the file path of the file to be readed
+* 	
+* 	@pre File must exist, otherwise will throw an exception
+*/
+def readFile(filename : String) : String = {
+	val source = scala.io.Source.fromFile(filename, "UTF-8")
+	val str = try source.map(c => if(acceptableChar(c)) c else ' ').mkString finally source.close()
+	str.toLowerCase.trim
+}
+\end{lstlisting}
+
+\begin{lstlisting}[style=scalaHighlight]
+val str = try contingut.map(c => if(FirstHalf.acceptableChar(c)) c else ' ').mkString finally xmlleg.close()
+\end{lstlisting}
+
+Aquesta funció la usem molt durant el comput de la similitud cosinus entre dos documents. En aquest cas la usem, en ordre descendent, per:
+
+\begin{itemize}
+  \item A $\emph{euclidean\_norm}$, per elevar al quadrat tota una col$ \cdot $lecció de nombres
+  \item A $\emph{cosinesim}$, per a normalitzar els vectors
+  \item A $\emph{cosinesim}$, per a deixar a 0 un vector (usat per a alinear-los)
+  \item A $\emph{cosinesim}$, per a simplificar els vectors de tuples a vectors de nombres
+  \item A $\emph{cosinesim}$, per multiplicar les tuples de nombres generades per la funció $\emph{zip}$
+\end{itemize}
+
+\newpage
+
+\begin{lstlisting}[style=scalaHighlight]
+  /*	Computes the euclidean norm of a vector (of Double values)
+   *	@param v the Vector
+   */
+  def euclidean_norm(v: Iterable[Double]) = {
+    Math.sqrt( v.map( x => x*x ).reduceLeft( _ + _ ) )
+  }
+
+  /*	Given two strings representing two filtered documents, and a list of words that will be filtered, it computes its cosine similarity
+   * 	@param s1 First document
+   * 	@param s2 Second document
+   * 	@param stopwords List of words that will be discarded
+   */
+  def cosinesim(s1: String, s2: String, stopwords: List[String]): Double = {
+    val freq1 = nonstopfreq(s1, stopwords).toMap;
+    val freq2 = nonstopfreq(s2, stopwords).toMap;
+    val freq1max = freq1.values.max
+    val freq2max = freq2.values.max
+
+    //normalizing vectors
+    val freq1norm = freq1.map{ case (key, value) => (key, value.toDouble/freq1max) }
+    val freq2norm = freq2.map{ case (key, value) => (key, value.toDouble/freq2max) }
+
+    //aligning vectors
+    val smv1 = freq2norm.map({ case (key, value) => (key, 0.0)}) ++ freq1norm
+    val smv2 = freq1norm.map({ case (key, value) => (key, 0.0)}) ++ freq2norm
+
+    //simplify vectors
+    val smv1_vec = smv1.values.map(x => x.asInstanceOf[Double])
+    val smv2_vec = smv2.values.map(x => x.asInstanceOf[Double])
+
+    //compute cosinesim
+    val term = smv1_vec.zip(smv2_vec).map(x => x._1 * x._2).reduceLeft( _ + _ )
+
+    term / (euclidean_norm(smv1_vec) * euclidean_norm(smv2_vec))
+  }
+\end{lstlisting}
+
+En aquest exemple també es veu una de les altres funcions més usades: \emph{ reduce }
+
+\newpage
+
+També la fem servir quan volem realitzar les mateixes operacions a la segona part amb el patró MapReduce. S'usa múltiples cops a la funció reducing del primer dels MapReduce que fem per calcular el tf\_idf.
+
+\begin{lstlisting}[style=scalaHighlight]
+//key-> Filename, values-> list of (Word, count)
+/* 	Given a file name and a list of tuples (Word, 1) (word occurrences) of that file, reduces the tuples with the same first value to a tuple (Word, n_ocurrences)
+ * 	@param key Name of the file
+ * 	@param values List of all occurrences of the words
+ */
+def reducing1(key: String, values: List[(String, Double)]): List[(String, Double)] = {
+  val res = for( (word, count_list) <- values.groupBy(_._1).toList )
+    //For every pair of word and list of counts, add up its counts
+    yield (word, count_list.map( {case (_, count) => count } ).reduceLeft( _ + _))
+
+  val max_freq = res.map(_._2).max
+
+  res.sortWith(FirstHalf.moreFrequent).map(x => (x._1, x._2/max_freq))
+}
+\end{lstlisting}
+
+O quan volem fer l'index invers per contar a quants fitxers surt una paraula determinada. Aquí també usem la funció $ \emph{map}$ (concretament a la funció de mapping del segon MapReduce).
+
+\begin{lstlisting}[style=scalaHighlight]
+/*	Given a file name and its word counts, unfolds all its tuples to the reverse (Word, File) tuple.
+ * 	This will let us count how many documents contain that word and compute the idf of that word.
+ * 	@param file_name Name of that file
+ * 	@param word_count List of word counts (Word, 1)
+ */
+def mapping2(file_name: String, word_count: List[(String, Double)]): List[(String, String)] = {
+  word_count.map(x => (x._1, file_name))
+}
+\end{lstlisting}
+
+\newpage
+
+Tenim una adaptació de la funcio $ \emph{cosinesim} $ per a usar-la a la segona part amb els MapReduce. Com era d'esperar, aquesta adaptació usa de la mateixa manera que la primera la funció $ \emph{map} $.
+
+\begin{lstlisting}[style=scalaHighlight]
+/*	Given two maps representing the frequency counts of the words of two files, it computes its cosine similarity
+ * 	@param m1 First document
+ * 	@param m2 Second document
+ */
+def cosinesim2(m1: Map[String, Double], m2: Map[String, Double]): Double = {
+
+  //aligning vectors
+  val smv1 = m2.map({ case (key, value) => (key, 0.0)}) ++ m1
+  val smv2 = m1.map({ case (key, value) => (key, 0.0)}) ++ m2
+
+  //simplify vectors
+  val smv1_vec = smv1.values.map(x => x.asInstanceOf[Double])
+  val smv2_vec = smv2.values.map(x => x.asInstanceOf[Double])
+
+  //compute cosinesim
+  val term = smv1_vec.zip(smv2_vec).map(x => x._1 * x._2).reduceLeft( _ + _ )
+
+  term / (FirstHalf.euclidean_norm(smv1_vec) * FirstHalf.euclidean_norm(smv2_vec))
+}
+\end{lstlisting}
+
+A vegades ens interessa fer un petit processat de la input abans de passar\-la al MapReduce. En aquestes situacions la funcio $ \emph{map} $ ens és molt útil.
+
+\begin{lstlisting}[style=scalaHighlight]
+//// 3/4 Computing TF_IDF ////
+
+//Computing the idf of every word
+//this line could be done with MapReduce, but the overhead caused by map and reduce actor initialization is not worth the time
+val idf = df.map(x => (x._1, Math.log(tf.size/x._2.length)))
+
+//preparing input: adding the idf to all input values
+//input: List[File -> ( List[(Word, dtf)], List[(Word, idf)])]
+val tfIdfInput = tf.map({case (k,v) => (k, (v,idf))})
+
+\end{lstlisting}
+
+El mateix podem dir per el resultat final.
+
+\begin{lstlisting}[style=scalaHighlight]
+//final product: Map[(Filename, Filename), cosinesim]
+      val finalResult = result.map({case (k,v) => (k, v.apply(0))})
+\end{lstlisting}
+
+I per acabar, al segon apartat de la segona part de la pràctica usem la funció $ \emph{map} $ per eliminar els claudators inicials i finals, i posteriorment la usem un parell de cops més per tallar l'string i agafar només el titol del document al que fa referencia, eliminant sobrenoms dels documents i noms de seccio del document.
+
+\begin{lstlisting}[style=scalaHighlight]
+//The order of the operations is important. There'll be references to pages that we don't have
+val kk3 = refs.filterNot(x=> x.contains(':') || x.apply(2)=='#').map(x=>x.substring(2,x.length()-2))
+    .map(x=>x.split("\\|").apply(0)).map(x=>x.split("#").apply(0))
+\end{lstlisting}
+
+\newpage
+
+\section{Filter i FilterNot}
+
+$ filter :: (a \rightarrow Boolean) \rightarrow [a] \rightarrow [a] $ \\
+$ filterNot :: (a \rightarrow Boolean) \rightarrow [a] \rightarrow [a] $ \\
+
+La funció $ \emph{filter} $, i la seva germana $ \emph{filterNot} $, són funcions que ens permeten filtrar el contingut d'una col$\cdot$lecció donant una funció de filtratge que nosaltres definim lliurement. El primer cas d'ús d'aquesta al llarg de la nostra pràctica és un bastant esperable: filtrar els fitxers d'entrada per extensió.
+
+\begin{lstlisting}[style=scalaHighlight]
+/*	Given a folder and two strings with the prefix and sufix of the files to be opened it returns an array of file handlers
+   * 	@param folder Name of the folder to search the files in
+   * 	@param startsWith Prefix of the files to be opened
+   * 	@param endsWith Sufix of the files to be opened
+   */
+  def openFiles(folder: String, startsWith: String, endsWith: String): Array[java.io.File] = {
+    var fileList = new java.io.File(folder).listFiles
+    .filter(_.getName.startsWith(startsWith))
+    .filter(_.getName.endsWith(endsWith))
+    fileList
+  }
+\end{lstlisting}
+
+El següent ús és per filtrar les stopwords del càlcul de freqüències.
+
+\begin{lstlisting}[style=scalaHighlight]
+/* Given a string @p s and a list of excluded words @stopwords, evaluates as the absolute frequencies of the words (substrings spaced by white spaces ' ') that @p s contains and @p stopwords does not
+   * More specifically, it evaluates as a list of pairs (String, Int), being the String a word of @p s but not a word of @p stopwords, and Int being its absolute frequency
+   * @param s A string
+   * @param stopwords A list of strings
+   */
+  def nonstopfreq (s: String, stopwords: List[String]) =
+    freq(s).filterNot(x => stopwords.contains(x._1))
+\end{lstlisting}
+
+\newpage
+
+\begin{lstlisting}[style=scalaHighlight]
+/*	First mapping function. Given a file name (not the path) and a tuple (File_path, List[stopwords])
+     * 	generates all the pairs (file name, (word, 1)). This will let us reduce the list to a list of ocurrences (frequency)
+     * 	@param file_name The file name
+     * 	@param file Tuple of (filePath, List[stopwords])
+     */
+    def mapping1(file_name: String, file: (String, List[String])): List[(String, (String, Double))] = {
+      val wordList = tractaxmldoc.readXMLFile(file._1).split(" +").toList.filterNot(file._2.contains(_))
+
+      val x = (for(word <- wordList) yield (file_name, (word, 1.toDouble)))
+      x
+    }
+\end{lstlisting}
+
+Posteriorment la usem per filtrar els documents per llindars de similitud i per trobar els documents que es referencien i no es referencien entre si.
+
+\begin{lstlisting}[style=scalaHighlight]
+  val Llindar: Double = 0.2
+
+  val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
+  val tf_idf = MapReduceTfIdf.computeSimilarities(files, stopwords, 10, 10, false)
+  val tf_idf2 = tf_idf.filter(x => x._2 > Llindar)
+
+  val fileMap = tractaxmldoc.titolsNomfitxer(files).toMap
+  val tf_idf3 = tf_idf2.filter(x => result2mapfilled(fileMap(x._1._1)).contains(fileMap(x._1._2)) )
+
+  println("10 primeres parelles de pagines similars que no es referencien una a l'altra")
+  for(i <- tf_idf3.take(10)) println(i)
+
+
+  val tf_idf4 = tf_idf.filter(x => x._2 < Llindar)
+  val tf_idf5 = tf_idf4.filterNot(x => result2mapfilled(fileMap(x._1._1)).contains(fileMap(x._1._2)) )
+\end{lstlisting}
+
+\newpage
+
+I per acabar, també la fem servir quan volem treure els enllaços a fitxers multimedia durant el filtratge a de referencies.
+
+\begin{lstlisting}[style=scalaHighlight]
+//The order of the operations is important. There'll be references to pages that we don't have
+	val kk3 = refs.filterNot(x=> x.contains(':') || x.apply(2)=='#').map(x=>x.substring(2,x.length()-2))
+    .map(x=>x.split("\\|").apply(0)).map(x=>x.split("#").apply(0))
+\end{lstlisting}
+
+\newpage
+
+\section{Reduce i Fold}
+
+$ reduceLeft :: (a \rightarrow a \rightarrow a) \rightarrow [a] \rightarrow [a] $ \\
+$ foldLeft :: a \rightarrow (a \rightarrow a \rightarrow a) \rightarrow [a] \rightarrow [a] $ \\
+
+Si has arribat fins aquí, segurament hauras vist que $\emph{reduceLeft}$ és una de les funcions que més es repeteixen. I és que també la usem múltiples vegades. També fem servir la funció $ \emph{foldLeft}$, que és molt semblant $\emph{reduceLeft}$ però ens permet triar l'element inical amb el que començar el "plegat" de la col$\cdot$lecció. Aquesta última només es fa servir un cop a l'hora de mostrar els resultats de la primera part, i podria ser substituida per $\emph{reduceLeft}$.
+
+\begin{lstlisting}[style=scalaHighlight]
+/*
+     * Given a list of tuples (_ Int), it prints the tuple in a fancy way and lists the division between _._2 and the total sum of _._2 of all the tuples on the list
+     * In our case, we use this function to print the list of frequencies of certain words in a file, being _._2 the absolute count of occurrences of this word.
+     * @param frequencyList List of tuples (_, Int)
+     * @param n Number of elements to be shown
+     */
+    def topN(freqencyList: List[(_, Int)], n: Int) = {
+      val nWords = freqencyList.foldLeft(0) { (total, actual) => total + actual._2 }
+      val nDiffWords = freqencyList length;
+      println("N Words: " + nWords + " Diferent: " + nDiffWords)
+      printf("%-30s %-11s %-10s\n", "Words", "ocurrences", "frequency")
+      for(r <- freqencyList.slice(0,n)) printf("%-30s %-11d %-10.7f%%\n", r._1, r._2, (r._2.toFloat/nWords)*100) //println(r._1 + "			" + r._2 + "	" + (r._2.toFloat/nWords)*100)
+      println()
+    }
+\end{lstlisting}
+
+El primer ús de $\emph{reduceLeft}$ el podem trobar quan volem calcular la norma euclidada d'un vector de nombres. Amb reduce podem sumar fàcilment tots els elements del sumatori.
+
+\begin{lstlisting}[style=scalaHighlight]
+/*	Computes the euclidean norm of a vector (of Double values)
+*	@param v the Vector
+*/
+def euclidean_norm(v: Iterable[Double]) = {
+    Math.sqrt( v.map( x => x*x ).reduceLeft( _ + _ ) )
+}
+\end{lstlisting}
+
+També s'usa per calcular el producte escalar dels dos vectors de freqüències (terme de la formula de la similitud cosinus).
+
+\begin{lstlisting}[style=scalaHighlight]
+    val term = smv1_vec.zip(smv2_vec).map(x => x._1 * x._2).reduceLeft( _ + _ )   
+\end{lstlisting}
+
+I per últim, la fem servir a l'hora de computar el nombre d'ocurrencies d'una paraula en un document amb MapReduce (primera funció de reducció).
+
+\begin{lstlisting}[style=scalaHighlight]
+//key-> Filename, values-> list of (Word, count)
+    /* 	Given a file name and a list of tuples (Word, 1) (word occurrences) of that file, reduces the tuples with the same first value to a tuple (Word, n_ocurrences)
+     * 	@param key Name of the file
+     * 	@param values List of all occurrences of the words
+     */
+    def reducing1(key: String, values: List[(String, Double)]): List[(String, Double)] = {
+      val res = for( (word, count_list) <- values.groupBy(_._1).toList )
+        //For every pair of word and list of counts, add up its counts
+        yield (word, count_list.map( {case (_, count) => count } ).reduceLeft( _ + _))
+
+      val max_freq = res.map(_._2).max
+
+      res.sortWith(FirstHalf.moreFrequent).map(x => (x._1, x._2/max_freq))
+    }
+\end{lstlisting}
+
+\newpage
+
+\section{SortWith}
+
+$ sortWith :: (a \rightarrow a \rightarrow Boolean) \rightarrow [a] \rightarrow [a] $ \\
+
+La funció $ \emph{sortWith} $ ens permet ordenar una col$\cdot$lecció passant com a paràmetre una funció d'ordenació definida per nosaltres. Principalment la usem per ordenar els resultats de les nostres funcions abans de mostrar-los.
+
+\begin{lstlisting}[style=scalaHighlight]
+/*
+     * 							Evaluating freq() function
+     */
+
+    Statistics.topN(freq(pg11).sortWith(moreFrequent), 10)
+
+    /*
+     * 							Evaluating nonstopfreq() function
+     */
+
+    Statistics.topN(nonstopfreq(pg11, english_stopwords).sortWith(moreFrequent), 10)
+
+    /*
+     * 							Evaluating paraulesfreqfreq() function
+     */
+
+    Statistics.paraulafreqfreqStats(paraulafreqfreq(pg11).sortWith(_._1 < _._1), 10, 5)
+
+     /*
+     * 							Evaluating ngrams() function
+     */
+
+    Statistics.topN(ngramsfreq(pg11, 3).sortWith(moreFrequent), 10)
+\end{lstlisting}
+
+I també l'usa la funció $ \emph{reducing1} $ amb el resultat final del seu comput per ordenar per freqüència.
+
+\begin{lstlisting}[style=scalaHighlight]
+    res.sortWith(FirstHalf.moreFrequent).map(x => (x._1, x._2/max_freq))
+\end{lstlisting}
+
+\chapter{Resultats d'execució}
+
+
+
+\end{document} 
