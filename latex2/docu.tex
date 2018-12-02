@@ -37,9 +37,9 @@
 
 \begin{document}
 
-\title{Pràctica Scala}
+\title{Pràctica Scala \\ Informe}
 \author{Marc Cané i Enric Rodríguez}
-\date{20/10/2020}
+\date{03/12/2018}
 \maketitle
 
 \newpage
@@ -47,7 +47,6 @@
 
 \newpage
 \chapter{Principals funcions d'ordre superior usades}
-
 Recopilatori amb exemples de les principals funcions d'ordre superior usades a l'hora de realitzar aquesta pràctica.
 
 \section{Map}
@@ -75,6 +74,8 @@ def readFile(filename : String) : String = {
 val str = try contingut.map(c => if(FirstHalf.acceptableChar(c)) c else ' ').mkString finally xmlleg.close()
 \end{lstlisting}
 
+\newpage
+
 Aquesta funció la usem molt durant el comput de la similitud cosinus entre dos documents. En aquest cas la usem, en ordre descendent, per:
 
 \begin{itemize}
@@ -84,8 +85,6 @@ Aquesta funció la usem molt durant el comput de la similitud cosinus entre dos 
   \item A $\emph{cosinesim}$, per a simplificar els vectors de tuples a vectors de nombres
   \item A $\emph{cosinesim}$, per multiplicar les tuples de nombres generades per la funció $\emph{zip}$
 \end{itemize}
-
-\newpage
 
 \begin{lstlisting}[style=scalaHighlight]
   /*	Computes the euclidean norm of a vector (of Double values)
@@ -449,7 +448,11 @@ def main() = {
      */
 
     Statistics.topN(ngramsfreq(pg11, 3).sortWith(moreFrequent), 10)
+\end{lstlisting}
 
+\newpage
+
+\begin{lstlisting}[style=scalaHighlight]
     /*
      * 							Evaluating cosinesim() function
      */
@@ -523,7 +526,11 @@ Les 5 frequencies menys frequents:
 1 paraules apareixen 809 vegades
 1 paraules apareixen 940 vegades
 1 paraules apareixen 1818 vegades
+\end{verbatim}
 
+\newpage
+
+\begin{verbatim}
 N Words: 30417 Diferent: 25774
 Words                          ocurrences  frequency
 project gutenberg tm           57          0,1873952 %
@@ -604,7 +611,82 @@ Temps total per calcular totes les comparacions: 9.2560514 segons
 
 \newpage
 
-\section{Resultats segons els llindars de simil·litud considerats}
+\section{Resultats de la segona part}
+
+\subsection{Resultats del càlcul de similaritat entre documents}
+
+Per motius d'il·lustració, he decidit executar aquesta part del codi amb només 10 fitxers, ja que sinó la sortida es fa gegant i no aporta res al resultat. El que es fa per avaluar aquesta segona part es senzill, es carreguen uns quants fitxers xml i el fitxer de les stopwords i es demana a la funció $computeSimilarities(...)$ que ens mostri els resultats. Cal notar que es necessari ficar el parametre $verbose$ a cert per a que es mostrin els resultats.
+
+\begin{lstlisting}[style=scalaHighlight]
+val stopwords = FirstHalf.readFile("stopwordscat-utf8.txt").split(" +").toList
+val files = Main.openFiles("wiki-xml-2ww5k", "", ".xml").take(10)
+val tstart = System.nanoTime
+val nActors = 4
+SecondHalf.MapReduceTfIdf.computeSimilarities(files.toList, stopwords, nActors, nActors, true)
+println("Temps total: " + (System.nanoTime-tstart)/Math.pow(10,9))
+\end{lstlisting}
+
+\newpage 
+
+El resultat de l'execució del seguent codi és el seguent.
+
+\begin{verbatim}
+Calculs iniciats...
+TFs calculats!
+DFs calculats. Ara falten fer els IDFs
+TF_IDFs calculats! Comparem els fitxers!
+Resultats del calcul de similaritat entre documents:
+Els documents 1000194.xml i 1000231.xml tenen una similaritat del 2.7105183847285925%
+Els documents 1000216.xml i 1000098.xml tenen una similaritat del 3.5863902633912086%
+Els documents 1000192.xml i 1000152.xml tenen una similaritat del 9.048518813872729%
+Els documents 1000192.xml i 1000137.xml tenen una similaritat del 0.9506912909177908%
+Els documents 1000194.xml i 1000098.xml tenen una similaritat del 6.286228311394698%
+Els documents 1000192.xml i 1000194.xml tenen una similaritat del 30.354524241556334%
+Els documents 1000192.xml i 1000231.xml tenen una similaritat del 2.1622333039955226%
+Els documents 1000222.xml i 1000098.xml tenen una similaritat del 1.8129191134207028%
+Els documents 1000216.xml i 1000231.xml tenen una similaritat del 4.039229826082441%
+Els documents 1000192.xml i 1000098.xml tenen una similaritat del 6.154431619715797%
+Els documents 1000222.xml i 1000231.xml tenen una similaritat del 2.2611947064760543%
+Els documents 1000205.xml i 1000194.xml tenen una similaritat del 2.3590273688580092%
+Els documents 1000091.xml i 1000098.xml tenen una similaritat del 4.549167451146728%
+Els documents 1000222.xml i 1000152.xml tenen una similaritat del 2.286008959079067%
+Els documents 1000216.xml i 1000091.xml tenen una similaritat del 1.0190080306388805%
+Els documents 1000098.xml i 1000152.xml tenen una similaritat del 7.374575382396653%
+Els documents 1000137.xml i 1000098.xml tenen una similaritat del 0.9762705925831764%
+Els documents 1000222.xml i 1000137.xml tenen una similaritat del 0.3890551577815524%
+Els documents 1000192.xml i 1000205.xml tenen una similaritat del 2.3186877020865224%
+Els documents 1000194.xml i 1000091.xml tenen una similaritat del 8.173194184940954%
+Els documents 1000205.xml i 1000216.xml tenen una similaritat del 9.941558511750246%
+Els documents 1000222.xml i 1000091.xml tenen una similaritat del 0.6538497186093499%
+Els documents 1000192.xml i 1000091.xml tenen una similaritat del 12.660683721068859%
+Els documents 1000098.xml i 1000231.xml tenen una similaritat del 1.64416306744753%
+Els documents 1000194.xml i 1000137.xml tenen una similaritat del 0.9904819856499192%
+Els documents 1000091.xml i 1000231.xml tenen una similaritat del 1.7606972026726193%
+Els documents 1000222.xml i 1000192.xml tenen una similaritat del 1.070365654429978%
+Els documents 1000222.xml i 1000216.xml tenen una similaritat del 4.486683906277028%
+Els documents 1000222.xml i 1000205.xml tenen una similaritat del 0.24647429195418757%
+Els documents 1000137.xml i 1000152.xml tenen una similaritat del 0.6577451732054265%
+Els documents 1000192.xml i 1000216.xml tenen una similaritat del 1.26877648883606%
+Els documents 1000205.xml i 1000091.xml tenen una similaritat del 3.1928936430969044%
+Els documents 1000216.xml i 1000152.xml tenen una similaritat del 4.360487047080797%
+Els documents 1000205.xml i 1000137.xml tenen una similaritat del 0.3596809717214933%
+Els documents 1000194.xml i 1000152.xml tenen una similaritat del 11.138064088885491%
+Els documents 1000152.xml i 1000231.xml tenen una similaritat del 1.2590362720544197%
+Els documents 1000137.xml i 1000091.xml tenen una similaritat del 0.757480173022309%
+Els documents 1000222.xml i 1000194.xml tenen una similaritat del 0.43956683341259095%
+Els documents 1000205.xml i 1000231.xml tenen una similaritat del 1.7031060869542374%
+Els documents 1000205.xml i 1000098.xml tenen una similaritat del 2.622678833225558%
+Els documents 1000091.xml i 1000152.xml tenen una similaritat del 2.308209183997995%
+Els documents 1000137.xml i 1000231.xml tenen una similaritat del 0.2018324523935682%
+Els documents 1000137.xml i 1000216.xml tenen una similaritat del 0.5311351152307364%
+Els documents 1000194.xml i 1000216.xml tenen una similaritat del 1.293387598506396%
+Els documents 1000205.xml i 1000152.xml tenen una similaritat del 3.6268341345122526%
+Calculs finalitzats. Temps total: 1.6510618
+Temps total: 1.6636222
+
+\end{verbatim}
+
+\subsection{Resultats segons els llindars de simil·litud considerats}
 
 Per comparar els resultats amb diferents llindars hem agafat un nombre de fitxers que contingués suficients documents perquè hi haguessin parelles similars pero alhora no massa gran perquè el càlcul no tardés molt. Hem decidit agafar 300 documents.
 
