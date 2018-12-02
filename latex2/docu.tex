@@ -39,7 +39,7 @@
 
 \title{Pràctica Scala}
 \author{Marc Cané i Enric Rodríguez}
-\date{20/10/2020}
+\date{2/12/2018}
 \maketitle
 
 \newpage
@@ -402,6 +402,126 @@ I també l'usa la funció $ \emph{reducing1} $ amb el resultat final del seu com
     res.sortWith(FirstHalf.moreFrequent).map(x => (x._1, x._2/max_freq))
 \end{lstlisting}
 
+\chapter{Creació dels MapReduce}
+
+\section{Computar similaritats}
+
+\begin{lstlisting}[style=scalaHighlight]
+    /*  First mapping function. Given a file name (not the path) and a tuple (File_path, List[stopwords]) 
+     *  generates all the pairs (file name, (word, 1)). This will let us reduce the list to a list of ocurrences (frequency)
+     *  @param file_name The file name
+     *  @param file Tuple of (filePath, List[stopwords])
+     */
+    def mapping1(file_name: String, file: (String, List[String])): List[(String, (String, Double))] = {
+      val wordList = tractaxmldoc.readXMLFile(file._1).split(" +").toList.filterNot(file._2.contains(_))
+      
+      val x = (for(word <- wordList) yield (file_name, (word, 1.toDouble)))
+      x
+    }
+    
+    //key-> Filename, values-> list of (Word, count)
+    /*  Given a file name and a list of tuples (Word, 1) (word occurrences) of that file, reduces the tuples with the same first value to a tuple (Word, n_ocurrences)
+     *  @param key Name of the file
+     *  @param values List of all occurrences of the words
+     */
+    def reducing1(key: String, values: List[(String, Double)]): List[(String, Double)] = {
+      val res = for( (word, count_list) <- values.groupBy(_._1).toList ) 
+        //For every pair of word and list of counts, add up its counts
+        yield (word, count_list.map( {case (_, count) => count } ).reduceLeft( _ + _))
+      
+      val max_freq = res.map(_._2).max
+      
+      res.sortWith(FirstHalf.moreFrequent).map(x => (x._1, x._2/max_freq))
+    }
+    
+\end{lstlisting}
+
+\begin{lstlisting}[style=scalaHighlight]
+    /*  Given a file name and its word counts, unfolds all its tuples to the reverse (Word, File) tuple. 
+     *  This will let us count how many documents contain that word and compute the idf of that word.
+     *  @param file_name Name of that file
+     *  @param word_count List of word counts (Word, 1)
+     */
+    def mapping2(file_name: String, word_count: List[(String, Double)]): List[(String, String)] = {
+      word_count.map(x => (x._1, file_name))
+    }
+\end{lstlisting}
+
+\begin{lstlisting}[style=scalaHighlight]
+/*  Given a file name, and a tuple containing the List of word counts and a Map with (at least) the idf of all words in that file
+     *  yields all the tuples (file name, (Word, tfidf)) for that list of word counts. This will let us compute the space model vector
+     *  of that file
+     *  @param file_name Name of the file
+     *  @param tf_idf_unfolded Pair containing the frequency counts of that file and the idf of all the words in that document set
+     */
+    def mapping3(file_name: String, tf_idf_unfolded: (List[(String, Double)], Map[String, Double])): List[(String, (String,Double))] = {
+      for (term_freq <- tf_idf_unfolded._1) 
+        yield ( (file_name, (term_freq._1, term_freq._2 * tf_idf_unfolded._2(term_freq._1))))
+    }
+\end{lstlisting}
+
+\begin{lstlisting}[style=scalaHighlight]
+/*  Given two maps representing the frequency counts of the words of two files, it computes its cosine similarity
+     *  @param m1 First document
+     *  @param m2 Second document
+     */
+    def cosinesim2(m1: Map[String, Double], m2: Map[String, Double]): Double = {
+      
+      //aligning vectors
+      val smv1 = m2.map({ case (key, value) => (key, 0.0)}) ++ m1
+      val smv2 = m1.map({ case (key, value) => (key, 0.0)}) ++ m2
+      
+      //simplify vectors
+      val smv1_vec = smv1.values.map(x => x.asInstanceOf[Double])
+      val smv2_vec = smv2.values.map(x => x.asInstanceOf[Double])
+      
+      //compute cosinesim
+      val term = smv1_vec.zip(smv2_vec).map(x => x._1 * x._2).reduceLeft( _ + _ )
+      
+      term / (FirstHalf.euclidean_norm(smv1_vec) * FirstHalf.euclidean_norm(smv2_vec))
+    }
+    
+    /*  Given a pair of file names, and its representing space model vectors, computes its cosine similarity
+     *  @param files Pair of file names
+     *  @param tf_idfs Pair of space model vectors
+     */
+    def mapping4(files: (String, String), tf_idfs:(List[(String, Double)], List[(String, Double)]) ) = {
+      val cosinesim = cosinesim2(tf_idfs._1.toMap, tf_idfs._2.toMap)
+      
+      List((files, cosinesim))
+    }
+\end{lstlisting}
+
+\section{Parells de pagines similars sense referències i viceversa}
+
+\begin{lstlisting}[style=scalaHighlight]
+    def mapping1(title: String, referencedDocs: List[String]): List[(String, String)] = {
+      for(doc <- referencedDocs) yield (doc, title) //document, document that references the first one
+    }
+  
+    def reducing1(title: String, docsRefer: List[String]): List[String] = {
+      docsRefer.distinct
+    }
+\end{lstlisting}
+
+Aquest codi no va funcionar com esperavem:
+\begin{lstlisting}[style=scalaHighlight]
+    def mapping2(title: String, tuple: (List[String],List[String])): List[(String, String)] = {
+      val allTitles = tuple._2
+      for(titleRef <- allTitles; if(!tuple._1.contains(titleRef))) yield (title, titleRef)
+    }
+  
+    def reducing2(title: String, docsRefer: List[String]): List[String] = {
+      docsRefer
+    }
+\end{lstlisting}
+
+
+\chapter{Classes usades}
+
+Hem fet servir una classe MapReduceActor que implementa el patró MapReduce usant la llibreria akka.
+
+
 \chapter{Resultats d'execució}
 
 \section{Resultats segons els llindars de simil·litud considerats}
@@ -591,7 +711,7 @@ Ho podem veure visualment en el seguent gràfic:
 
 \addplot[
     color=blue,
-    mark=square,
+    %mark=square,
     ]
     coordinates {
     (1, 23.177229516)(2, 14.962622731)(3, 12.921794558)(4, 12.648637579)(5, 13.218281647)(8, 13.171002857)(10, 12.816006747)(15, 13.313055689)(20, 14.519156598)(25, 15.165376866)
@@ -601,6 +721,8 @@ Ho podem veure visualment en el seguent gràfic:
 \end{tikzpicture}
 \end{center}
 
+En el gràfic veiem que el rendiment millora molt al passar de 1 a 2 actors, lleugerament al posar-ne 3 i molt poc al posar el quart.
+Al afegir els seguents el temps puja lleugerament i a partir dels 15 actors el temps de còmput augmenta considerablement a mesura que n'anem afegint més. El número òptim sembla ser el 4 i sembla tenir sentit ja que es correspon amb el número de fils que té la màquina. \\
 
 Les proves de rendiment s'han fet en un intel i5 M430 (2010), 2.26 Ghz, 2 cores, 4 threads, 6 GB de RAM.
 
