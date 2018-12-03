@@ -21,7 +21,8 @@ object FirstHalf {
     val pg11_net = readFile("test/pg11-net.txt")
     
     //load all the files that will be evaluated with cosinesim()
-    val fileSet = new java.io.File("test").listFiles.filter((x) => x.getName.startsWith("pg") && x.getName.endsWith(".txt")).toSet
+    val fileSet = new java.io.File("test").listFiles
+		.filter((x) => x.getName.startsWith("pg") && x.getName.endsWith(".txt")).toSet
     
     
     /*
@@ -516,7 +517,8 @@ object Main extends App {
    * 	@param endsWith Sufix of the files to be opened
    */
   def openFiles(folder: String, startsWith: String, endsWith: String): Array[java.io.File] = {
-    var fileList = new java.io.File(folder).listFiles.filter(_.getName.startsWith(startsWith)).filter(_.getName.endsWith(endsWith))
+    var fileList = new java.io.File(folder).listFiles
+		.filter(_.getName.startsWith(startsWith)).filter(_.getName.endsWith(endsWith))
     fileList
   }
   

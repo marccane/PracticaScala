@@ -16,7 +16,9 @@ object tractaxmldoc{
 	  val refs=(ref findAllIn contingut).toList
 	  
 	  //The order of the operations is important. There'll be references to pages that we don't have
-	  val kk3 = refs.filterNot(x=> x.contains(':') || x.apply(2)=='#').map(x=>x.substring(2,x.length()-2)).map(x=>x.split("\\|").apply(0)).map(x=>x.split("#").apply(0))
+	  val kk3 = refs.filterNot(x=> x.contains(':') || x.apply(2)=='#').map(x=>x.substring(2,x.length()-2))
+			.map(x=>x.split("\\|").apply(0))
+			.map(x=>x.split("#").apply(0))
 	  
 	  (title, kk3)
   }
