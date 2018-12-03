@@ -405,7 +405,7 @@ I també l'usa la funció $ \emph{reducing1} $ amb el resultat final del seu com
 
 \section{Computar similaritats}
 
-Aquesta implementació del MapReduce per resoldre el problema de trobar la similitud entre documents fa ús de 4 instàncies consecutives d'aquest. 
+Aquesta implementació del MapReduce per resoldre el problema de trobar la similitud entre documents fa ús de 4 instàncies consecutives d'aquest.
 
 El primer busca els vectors de freqüències absolutes de tots els fitxers que es volen comparar. La funció de mapping crea les parelles (fitxer, (paraula, 1)) i la funció reduce busca acumular totes aquestes tuples i deixar-ho en (fitxer, List[(paraula, ocurrències)]).
 
@@ -723,7 +723,8 @@ said to herself                19          0,0624651 %
 
 
 Similitud cosinus entre totes les permutacions dels fitxers:
-''test\pg74.txt'',''test\pg74-net.txt'',''test\pg11.txt'',''test\pg12-net.txt'',''test\pg2500.txt'',''test\pg11-net.txt'',''test\pg12.txt'',''test\pg2500-net.txt''
+''test\pg74.txt'',''test\pg74-net.txt'',''test\pg11.txt'',''test\pg12-net.txt'',
+''test\pg2500.txt'',''test\pg11-net.txt'',''test\pg12.txt'',''test\pg2500-net.txt''
 |
 | La similitud cosinus entre pg74.txt i pg74-net.txt es de 0,9889848979
 |	Calculada en temps: 1.0292793 segons
